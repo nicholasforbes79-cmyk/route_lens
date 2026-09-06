@@ -3,7 +3,7 @@
 // Bump CACHE_VERSION on every deploy. With no build step there is no content
 // hashing, so a stale cached module will otherwise outlive several edits and
 // you will spend an evening debugging a bug you already fixed.
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const SHELL = `rl-shell-${CACHE_VERSION}`;
 const TILES = 'rl-tiles-v1';
 const TILE_LIMIT = 1500;

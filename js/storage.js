@@ -39,7 +39,11 @@ export const saveApiKey = (k) => { try { localStorage.setItem(KEY_KEY, k.trim())
 // ---------------------------------------------------------------- IndexedDB
 
 const DB_NAME = 'route-lens';
-const DB_VERSION = 1;
+// v2 added the journeys store. Bump this whenever a store is added, or writes
+// to the new one fail with NotFoundError on every existing install.
+const DB_VERSION = 2;
+export const STORES = ['routes', 'lenses', 'journeys'];
+
 let dbPromise = null;
 
 function openDb() {
@@ -54,9 +58,11 @@ function openDb() {
       if (!db.objectStoreNames.contains('lenses')) {
         db.createObjectStore('lenses', { keyPath: 'id' });
       }
-      if (!db.objectStoreNames.contains('sessions')) {
-        db.createObjectStore('sessions', { keyPath: 'id' }).createIndex('by_routeId', 'routeId');
+      if (!db.objectStoreNames.contains('journeys')) {
+        db.createObjectStore('journeys', { keyPath: 'id' }).createIndex('by_routeId', 'routeId');
       }
+      // 'sessions' was created by v1 and never used.
+      if (db.objectStoreNames.contains('sessions')) db.deleteObjectStore('sessions');
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);

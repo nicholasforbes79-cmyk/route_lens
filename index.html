@@ -25,6 +25,7 @@
   <section id="screen-plan" class="screen is-active">
     <header class="bar">
       <h1>Route Lens</h1>
+      <button id="open-routes" class="bar-link" type="button">Saved</button>
       <button id="open-settings" class="icon-btn" type="button" aria-label="Settings">&#9881;</button>
     </header>
 
@@ -86,6 +87,27 @@
 
     <div class="panel">
       <button id="start-journey" class="primary-btn" type="button">Start journey</button>
+    </div>
+  </section>
+
+  <!-- --------------------------------------------- saved routes & journeys -->
+  <section id="screen-routes" class="screen">
+    <header class="bar">
+      <button id="routes-back" class="icon-btn" type="button" aria-label="Back">&#8592;</button>
+      <h1>Saved</h1>
+    </header>
+
+    <div class="scroll">
+      <h2>Routes</h2>
+      <p id="routes-empty" class="hint">
+        Nothing saved yet. Every route you fetch is kept here so you can walk it again
+        without dropping pins.
+      </p>
+      <div id="routes-list" class="saved-list"></div>
+
+      <h2>Past journeys</h2>
+      <p id="journeys-empty" class="hint">No journeys recorded yet.</p>
+      <div id="journeys-list" class="saved-list"></div>
     </div>
   </section>
 

@@ -1,6 +1,6 @@
 // app.js — bootstrap and screen wiring.
 
-import { positionAt } from './geo.js';
+import { positionAt, buildRoute } from './geo.js';
 import {
   loadBuiltinLenses, crowdingReport, crowdingMessage, domainValueAt,
   lensMilestones, validateLens,
@@ -134,6 +134,8 @@ async function fetchRoute() {
     state.route = route;
     drawRoute(route);
     saveSettings({ profile });
+    // Keep it, but never let a storage failure block getting on with the walk.
+    try { await rememberRoute(route); } catch (err) { console.warn('Could not save route:', err); }
     openSetup();
   } catch (err) {
     status.className = 'status is-error';
@@ -304,6 +306,183 @@ function openSettings() {
   $('opt-wakelock').checked = state.settings.wakeLock;
   $('key-status').textContent = loadApiKey() ? 'A key is saved on this device.' : '';
   show('screen-settings');
+}
+
+// -------------------------------------------------- saved routes & journeys
+
+const shortDate = (t) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+/** Two routes count as the same if their endpoints and mode match. */
+const routeKey = (r) =>
+  `${r.profile}:${r.start.lat.toFixed(4)},${r.start.lng.toFixed(4)}` +
+  `>${r.end.lat.toFixed(4)},${r.end.lng.toFixed(4)}`;
+
+function defaultRouteName(route) {
+  const km = `${(route.distance / 1000).toFixed(2)} km`;
+  const profile = PROFILES.find((p) => p.id === route.profile);
+  // A straight-line fallback has no travel mode, so do not invent one.
+  return profile ? `${km} ${profile.label.toLowerCase()}` : `${km} straight line`;
+}
+
+/**
+ * Keep every route that gets fetched. Re-fetching the same trip updates the
+ * existing entry rather than filling the list with near-duplicates.
+ */
+async function rememberRoute(route) {
+  const key = routeKey(route);
+  const existing = (await all('routes')) || [];
+  const match = existing.find((r) => r.key === key);
+
+  const record = {
+    id: match ? match.id : uid(),
+    key,
+    name: match ? match.name : defaultRouteName(route),
+    profile: route.profile,
+    start: route.start,
+    end: route.end,
+    // Store the raw coordinates, not the cumulative table — rebuilding it takes
+    // a few milliseconds and cannot then drift out of sync with the geometry.
+    coordinates: route.coordinates,
+    distance: route.distance,
+    duration: route.duration,
+    approximate: !!route.approximate,
+    createdAt: match ? match.createdAt : Date.now(),
+    updatedAt: Date.now(),
+  };
+  await put('routes', record);
+  state.route.savedId = record.id;
+  return record;
+}
+
+function loadSavedRoute(record) {
+  const route = {
+    geometry: buildRoute(record.coordinates),
+    coordinates: record.coordinates,
+    profile: record.profile,
+    start: record.start,
+    end: record.end,
+    distance: record.distance,
+    duration: record.duration,
+    approximate: record.approximate,
+    savedId: record.id,
+  };
+  state.route = route;
+  state.start = record.start;
+  state.end = record.end;
+  setPoint('start', record.start);
+  setPoint('end', record.end);
+  drawRoute(route);
+  $('profile').value = record.profile === 'straight-line' ? state.settings.profile : record.profile;
+  openSetup();
+}
+
+/** Write a journey to history. Called when a journey ends. */
+async function recordJourney() {
+  if (!journey.tracker || !journey.engine) return;
+  const fired = journey.log || [];
+  if (!fired.length && (!journey.tracker.last || journey.tracker.last.along < 20)) return;
+
+  await put('journeys', {
+    id: uid(),
+    routeId: state.route.savedId || null,
+    routeName: state.route.savedName || defaultRouteName(state.route),
+    lensTitle: journey.lens ? journey.lens.title : null,
+    startedAt: journey.tracker.startedAt,
+    endedAt: Date.now(),
+    distance: journey.tracker.last ? journey.tracker.last.along : 0,
+    routeDistance: state.route.distance,
+    milestones: fired,
+  });
+}
+
+async function openSavedScreen() {
+  const routes = ((await all('routes')) || []).sort((a, b) => b.updatedAt - a.updatedAt);
+  const journeys = ((await all('journeys')) || []).sort((a, b) => b.endedAt - a.endedAt);
+
+  const routeList = $('routes-list');
+  routeList.innerHTML = '';
+  $('routes-empty').hidden = routes.length > 0;
+
+  for (const r of routes) {
+    const row = document.createElement('div');
+    row.className = 'saved';
+
+    const main = document.createElement('button');
+    main.type = 'button';
+    main.className = 'saved-main';
+    // An unknown profile means the straight-line fallback, so the mode label
+    // already says so — no need to append it a second time.
+    const profile = PROFILES.find((p) => p.id === r.profile);
+    const mode = profile ? profile.label : 'Straight line';
+    main.innerHTML = `<b>${escapeHtml(r.name)}</b><span>${(r.distance / 1000).toFixed(2)} km · ` +
+      `${escapeHtml(mode)} · ${shortDate(r.updatedAt)}</span>`;
+    main.onclick = () => loadSavedRoute(r);
+
+    const rename = document.createElement('button');
+    rename.type = 'button';
+    rename.className = 'saved-icon';
+    rename.title = 'Rename';
+    rename.textContent = '✎';
+    rename.onclick = async () => {
+      const name = prompt('Name this route', r.name);
+      if (name && name.trim()) {
+        await put('routes', { ...r, name: name.trim() });
+        openSavedScreen();
+      }
+    };
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'saved-icon is-danger';
+    remove.title = 'Delete';
+    remove.textContent = '✕';
+    remove.onclick = async () => {
+      await del('routes', r.id);
+      openSavedScreen();
+    };
+
+    row.append(main, rename, remove);
+    routeList.append(row);
+  }
+
+  const journeyList = $('journeys-list');
+  journeyList.innerHTML = '';
+  $('journeys-empty').hidden = journeys.length > 0;
+
+  for (const j of journeys) {
+    const row = document.createElement('div');
+    row.className = 'saved';
+
+    const main = document.createElement('div');
+    main.className = 'saved-main';
+    const mins = Math.max(1, Math.round((j.endedAt - j.startedAt) / 60000));
+    const pct = j.routeDistance ? Math.round((j.distance / j.routeDistance) * 100) : 0;
+    main.innerHTML = `<b>${escapeHtml(j.lensTitle || j.routeName)}</b>` +
+      `<span>${shortDate(j.endedAt)} · ${(j.distance / 1000).toFixed(2)} km of ` +
+      `${(j.routeDistance / 1000).toFixed(2)} km (${pct}%) · ${mins} min · ` +
+      `${j.milestones.length} milestone${j.milestones.length === 1 ? '' : 's'}</span>`;
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'saved-icon is-danger';
+    remove.textContent = '✕';
+    remove.onclick = async () => { await del('journeys', j.id); openSavedScreen(); };
+
+    row.append(main, document.createElement('span'), remove);
+
+    if (j.milestones.length) {
+      const log = document.createElement('div');
+      log.className = 'saved-log';
+      const titles = j.milestones.map((m) => m.title);
+      const shown = titles.slice(0, 6);
+      log.textContent = shown.join(' · ')
+        + (titles.length > shown.length ? ` … and ${titles.length - shown.length} more` : '');
+      row.append(log);
+    }
+    journeyList.append(row);
+  }
+
+  show('screen-routes');
 }
 
 // ------------------------------------------------------------- lens editor
@@ -500,6 +679,7 @@ const journey = {
   lastAnnouncement: null,
   alertTimer: 0,
   muted: false,
+  log: [],
 };
 
 function initJourneyMap() {
@@ -555,6 +735,9 @@ function showAlert(event) {
   for (const m of event.all) {
     const tick = $('ribbon').querySelector(`[data-key="${CSS.escape(m.key)}"]`);
     if (tick) tick.classList.add('done');
+    // Log every milestone, including ones folded into a catch-up announcement,
+    // so nothing that happened on the walk is lost from the history.
+    journey.log.push({ key: m.key, title: m.title, d: m.d, firedAt: Date.now() });
   }
 }
 
@@ -668,6 +851,7 @@ async function startJourney() {
   journey.engine = createMilestoneEngine(state.milestones, state.route.distance);
   journey.muted = false;
   journey.lastAnnouncement = null;
+  journey.log = [];
 
   show('screen-journey');
   initJourneyMap();
@@ -699,7 +883,16 @@ async function startJourney() {
   }, 1000);
 }
 
-function endJourney() {
+async function endJourney() {
+  let saveError = null;
+  try {
+    await recordJourney();
+  } catch (err) {
+    // Do not fail the journey over storage, but do not hide it either — a
+    // silent catch here meant journeys were never recorded and never noticed.
+    saveError = err;
+    console.warn('Could not save journey:', err);
+  }
   if (journey.tracker) journey.tracker.stop();
   clearInterval(journey.timer);
   clearTimeout(journey.alertTimer);
@@ -710,6 +903,15 @@ function endJourney() {
   $('alert-card').hidden = true;
   show('screen-plan');
   if (map) setTimeout(() => map.invalidateSize(), 0);
+
+  const status = $('plan-status');
+  if (saveError) {
+    status.className = 'status is-error';
+    status.textContent = `Journey finished, but it could not be saved to history: ${saveError.message}`;
+  } else if (journey.log.length) {
+    status.className = 'status is-ok';
+    status.textContent = `Journey saved — ${journey.log.length} milestones. See it under Saved.`;
+  }
 }
 
 // ------------------------------------------- launcher shortcuts and sharing
@@ -783,6 +985,8 @@ async function boot() {
   $('get-route').onclick = fetchRoute;
   $('open-settings').onclick = openSettings;
   $('settings-back').onclick = () => show('screen-plan');
+  $('open-routes').onclick = openSavedScreen;
+  $('routes-back').onclick = () => show('screen-plan');
   $('setup-back').onclick = () => show('screen-plan');
 
   $('use-location').onclick = async () => {
@@ -933,7 +1137,7 @@ async function boot() {
   if (new URLSearchParams(location.search).has('debug')) {
     window.RouteLens = {
       state, journey, map, setPoint, fetchRoute, recompile, openSetup, show,
-      startJourney, endJourney,
+      startJourney, endJourney, openSavedScreen, loadSavedRoute, rememberRoute,
 
       /** Replay a synthetic walk through the live screen, at `speedUp` × real time. */
       async simulate({ speedMps = 1.4, intervalS = 5, noiseM = 6, stepMs = 30 } = {}) {
