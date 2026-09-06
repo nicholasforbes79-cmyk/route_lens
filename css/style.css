@@ -58,9 +58,10 @@ html, body {
 .icon-btn:active { background: var(--bg-elevated); }
 
 /* -------------------------------------------------------------------- map */
-/* The map takes what is left, but never so much that the controls get
-   squeezed — on a phone the controls are the part you have to hit. */
-.map { flex: 1 1 auto; min-height: 140px; max-height: 52%; background: #0d0d18; }
+/* The map takes whatever the controls do not need. No percentage cap: what
+   matters for hitting a button is its absolute size, not its share of the
+   screen, and a cap leaves dead space at the bottom of tall phones. */
+.map { flex: 1 1 auto; min-height: 140px; background: #0d0d18; }
 .leaflet-container { background: #0d0d18; font: inherit; }
 .leaflet-control-attribution { background: rgba(18,18,31,.8); color: var(--text-dim); }
 .leaflet-control-attribution a { color: var(--text-dim); }
@@ -79,8 +80,8 @@ html, body {
 
 .endpoint {
   display: flex; align-items: center; gap: 10px;
-  padding: 12px;
-  min-height: 72px;
+  padding: 14px;
+  min-height: 88px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--bg-elevated);
@@ -91,9 +92,9 @@ html, body {
 }
 .endpoint.is-armed { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .endpoint-text { display: grid; min-width: 0; }
-.endpoint-text b { font-size: 16px; font-weight: 600; }
+.endpoint-text b { font-size: 19px; font-weight: 600; }
 .endpoint-text em {
-  font-style: normal; font-size: 14px; color: var(--text-dim);
+  font-style: normal; font-size: 15px; color: var(--text-dim);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
@@ -106,19 +107,19 @@ html, body {
 
 .primary-btn {
   width: 100%;
-  min-height: 62px;
+  min-height: 74px;
   border: 0; border-radius: 14px;
   background: var(--accent); color: #fff;
-  font: 600 19px/1 system-ui, sans-serif;
+  font: 600 22px/1 system-ui, sans-serif;
   cursor: pointer;
 }
 .primary-btn:disabled { background: var(--bg-elevated); color: var(--text-dim); }
 .primary-btn:active:not(:disabled) { transform: translateY(1px); }
 
 .ghost-btn, .select, .text-input {
-  min-height: 54px;
-  padding: 0 12px;
-  font-size: 16px;
+  min-height: 62px;
+  padding: 0 14px;
+  font-size: 18px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--bg-elevated);
@@ -221,13 +222,13 @@ html, body {
 body[data-text="large"] {
   --big-scale: 1.18;
 }
-body[data-text="large"] .endpoint-text b { font-size: 18px; }
-body[data-text="large"] .endpoint-text em { font-size: 16px; }
-body[data-text="large"] .endpoint { min-height: 80px; }
-body[data-text="large"] .primary-btn { font-size: 21px; min-height: 68px; }
+body[data-text="large"] .endpoint-text b { font-size: 22px; }
+body[data-text="large"] .endpoint-text em { font-size: 17px; }
+body[data-text="large"] .endpoint { min-height: 102px; }
+body[data-text="large"] .primary-btn { font-size: 25px; min-height: 86px; }
 body[data-text="large"] .ghost-btn,
 body[data-text="large"] .select,
-body[data-text="large"] .text-input { font-size: 18px; min-height: 58px; }
+body[data-text="large"] .text-input { font-size: 20px; min-height: 72px; }
 body[data-text="large"] .bar h1 { font-size: 20px; }
 body[data-text="large"] .hint,
 body[data-text="large"] .status { font-size: 16px; }
@@ -249,8 +250,8 @@ body[data-text="large"] .alert-card p { font-size: 18px; }
 body[data-text="large"] .saved-main b { font-size: 17px; }
 body[data-text="large"] .saved-main span { font-size: 14px; }
 body[data-text="large"] .toggle { font-size: 17px; }
-/* The map has to give up the room this needs. */
-body[data-text="large"] .map { max-height: 44%; }
+/* The map simply gets whatever the larger controls leave over. */
+body[data-text="large"] .map { min-height: 120px; }
 
 /* ------------------------------------------------------ saved routes list */
 .bar-link {
