@@ -156,6 +156,7 @@ const FRACTION_PRESETS = [
 ];
 
 function openSetup() {
+  setupMessage('');
   const r = state.route;
   const km = (r.distance / 1000).toFixed(2);
   const mins = r.duration ? ` · about ${Math.round(r.duration / 60)} min` : '';
@@ -532,12 +533,27 @@ function waypointRow(w = { at: '', name: '', body: '' }) {
 const escapeHtml = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 const escapeAttr = (s) => escapeHtml(s).replace(/"/g, '&quot;');
 
-/** Editor feedback, pinned under the header where it is actually visible. */
-function editorMessage(text, isError = false) {
-  const el = $('ed-status');
+/** Show a message pinned under a screen's header, where it cannot be missed. */
+function screenMessage(id, text, isError = false) {
+  const el = $(id);
   el.hidden = !text;
   el.textContent = text || '';
   el.classList.toggle('is-error', !!isError);
+}
+
+const editorMessage = (text, isError) => screenMessage('ed-status', text, isError);
+const setupMessage = (text, isError) => screenMessage('setup-status', text, isError);
+
+/** Centre a named lens in the setup screen's scroller. */
+function scrollLensIntoView(title) {
+  const scroller = document.querySelector('#screen-setup .scroll');
+  const btn = [...document.querySelectorAll('#lens-list .lens')]
+    .find((b) => b.textContent.includes(title));
+  if (!scroller || !btn) return;
+
+  const s = scroller.getBoundingClientRect();
+  const b = btn.getBoundingClientRect();
+  scroller.scrollTop += (b.top - s.top) - (scroller.clientHeight / 2 - b.height / 2);
 }
 
 function openLensEditor(lens) {
@@ -663,20 +679,30 @@ async function saveLens() {
   // selectable. Staying put with a message the user has to scroll to find is
   // indistinguishable from the button doing nothing.
   setTimeout(() => {
-    if (document.querySelector('.screen.is-active').id === 'screen-lens-editor') {
-      show('screen-setup');
-      const note = $('milestone-count');
-      note.textContent = `Saved “${lens.title}” — pick it below to use it.`;
-    }
+    if (document.querySelector('.screen.is-active').id !== 'screen-lens-editor') return;
+    show('screen-setup');
+    setupMessage(`Saved “${lens.title}” — tap it below to use it.`);
+    // Bring the saved lens into view, once the newly-shown screen has a layout
+    // to measure. Deliberately setTimeout and not requestAnimationFrame:
+    // rAF does not run at all while the page is hidden, so if the phone locked
+    // or the user switched apps mid-save, the scroll would never happen.
+    setTimeout(() => scrollLensIntoView(lens.title), 50);
   }, 900);
 }
 
 async function deleteLens() {
-  await del('lenses', editor.id);
-  if (state.settings.lensId === editor.id) state.settings = saveSettings({ lensId: null });
-  await refreshLenses();
+  const name = $('ed-title').value.trim() || 'that lens';
+  try {
+    await del('lenses', editor.id);
+    if (state.settings.lensId === editor.id) state.settings = saveSettings({ lensId: null });
+    await refreshLenses();
+  } catch (err) {
+    editorMessage(`Could not delete: ${err.message}`, true);
+    return;
+  }
   show('screen-setup');
   if (state.route) recompile();
+  setupMessage(`Deleted “${name}”.`);
 }
 
 /** Built-ins plus anything the user has written. */

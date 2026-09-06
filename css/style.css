@@ -306,7 +306,10 @@ body[data-text="large"] .map { min-height: 120px; }
   cursor: pointer;
 }
 
-.editor-status {
+/* Shared: a message pinned under a screen's header, where it cannot be
+   scrolled away from. Any feedback that answers "did my tap do anything?"
+   belongs here rather than next to the control that produced it. */
+.screen-status {
   flex: 0 0 auto;
   margin: 0;
   padding: 12px 14px;
@@ -315,7 +318,7 @@ body[data-text="large"] .map { min-height: 120px; }
   border-bottom: 1px solid var(--ok);
   color: var(--ok);
 }
-.editor-status.is-error {
+.screen-status.is-error {
   background: rgba(255, 92, 138, .12);
   border-bottom-color: var(--accent-2);
   color: var(--accent-2);
