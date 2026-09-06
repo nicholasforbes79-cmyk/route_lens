@@ -139,7 +139,29 @@ export function crowdingReport(lens) {
   for (let i = 1; i < ms.length; i++) maxGap = Math.max(maxGap, ms[i].fraction - ms[i - 1].fraction);
 
   const headShare = ms.filter((m) => m.fraction <= 0.05).length / ms.length;
-  return { headShare, maxGap, crowded: headShare > 0.3 || maxGap > 0.25, count: ms.length };
+  const bunched = headShare > 0.3;
+  const gappy = maxGap > 0.25;
+  return { headShare, maxGap, bunched, gappy, crowded: bunched || gappy, count: ms.length };
+}
+
+/**
+ * Plain-English version of a crowding report. The two conditions are quite
+ * different problems, so the message has to say which one actually fired —
+ * otherwise a lens with one long empty stretch is described as "bunched up",
+ * with 0% of its stops in the first 5%.
+ */
+export function crowdingMessage(report) {
+  if (!report || !report.crowded) return '';
+  const head = Math.round(report.headShare * report.count);
+  const gap = Math.round(report.maxGap * 100);
+
+  if (report.bunched && report.gappy) {
+    return `${head} of ${report.count} stops land in the first 5%, and there is a ${gap}% stretch with nothing in it.`;
+  }
+  if (report.bunched) {
+    return `${head} of ${report.count} stops land in the first 5% of the route.`;
+  }
+  return `There is a ${gap}% stretch of the route with nothing to announce.`;
 }
 
 const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');

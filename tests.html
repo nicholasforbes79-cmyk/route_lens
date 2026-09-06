@@ -32,7 +32,7 @@ import {
   snapGlobal, createSnapper, segmentIndexAt,
 } from './js/geo.js';
 import {
-  validateLens, scalePosition, domainValueAt, lensMilestones, crowdingReport,
+  validateLens, scalePosition, domainValueAt, lensMilestones, crowdingReport, crowdingMessage,
 } from './js/lenses.js';
 import {
   fractionMilestones, compileMilestones, createMilestoneEngine, fractionSpeech,
@@ -290,6 +290,23 @@ group('lenses');
   record(report.crowded && report.headShare === 0.4,
          'crowding report flags the four inner planets in the first 5%',
          `headShare=${report.headShare}, maxGap=${report.maxGap.toFixed(3)}`);
+  record(/4 of 10 stops/.test(crowdingMessage(report)),
+         'and describes it as crowding', crowdingMessage(report));
+
+  // A lens with well-spread stops but one long empty stretch is a different
+  // problem, and must not be reported as "bunched up at the start".
+  const gappy = crowdingReport({
+    id: 'g', title: 'g', domain: { from: 0, to: 100 },
+    waypoints: [{ at: 10, name: 'a' }, { at: 20, name: 'b' }, { at: 100, name: 'c' }],
+  });
+  record(gappy.crowded && gappy.gappy && !gappy.bunched, 'a long empty stretch is flagged separately',
+         `headShare=${gappy.headShare}, maxGap=${gappy.maxGap.toFixed(2)}`);
+  record(/stretch/.test(crowdingMessage(gappy)) && !/first 5%/.test(crowdingMessage(gappy)),
+         'and is described as a gap, not as crowding', crowdingMessage(gappy));
+  record(crowdingMessage(crowdingReport({
+    id: 'e', title: 'e', domain: { from: 0, to: 100 },
+    waypoints: [25, 50, 75, 100].map((at) => ({ at, name: String(at) })),
+  })) === '', 'an evenly spread lens produces no warning at all');
 
   // Power 0.5 on a domain where values go as n-squared spaces them evenly —
   // which is exactly why the Bohr atom lens uses it.

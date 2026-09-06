@@ -2,7 +2,8 @@
 
 import { positionAt } from './geo.js';
 import {
-  loadBuiltinLenses, crowdingReport, domainValueAt, lensMilestones, validateLens,
+  loadBuiltinLenses, crowdingReport, crowdingMessage, domainValueAt,
+  lensMilestones, validateLens,
 } from './lenses.js';
 import { compileMilestones, createMilestoneEngine } from './milestones.js';
 import { createTracker, formatDistance, formatDuration } from './tracker.js';
@@ -259,11 +260,9 @@ function renderCrowding(lens) {
   const report = crowdingReport(lens);
   if (!report.crowded) { box.hidden = true; return; }
 
-  const pct = Math.round(report.headShare * report.count);
   box.hidden = false;
   box.innerHTML =
-    `<div><b>${pct} of ${report.count} stops</b> land in the first 5% of the route, then a
-     ${Math.round(report.maxGap * 100)}% gap. That is the honest spacing — but you can even it out.</div>`;
+    `<div>${escapeHtml(crowdingMessage(report))} That is the honest spacing — but you can even it out.</div>`;
 
   const btn = document.createElement('button');
   btn.type = 'button';
@@ -420,9 +419,7 @@ function renderEditorPreview() {
   note.textContent = total
     ? `${ms.length} stops on your ${(total / 1000).toFixed(2)} km route.`
     : `${ms.length} stops. Load a route to see real distances.`;
-  if (report.crowded) {
-    note.textContent += ` Bunched up — ${Math.round(report.headShare * 100)}% land in the first 5%.`;
-  }
+  if (report.crowded) note.textContent += ` ${crowdingMessage(report)}`;
 
   for (const m of ms) {
     const li = document.createElement('li');
