@@ -1,0 +1,78 @@
+{
+  "id": "everest",
+  "title": "Everest",
+  "subtitle": "Base Camp to the summit",
+  "unit": "metres climbed",
+  "unitShort": "m",
+  "scale": "linear",
+  "precision": "approximate",
+  "sourceNote": "South Col route. Camp altitudes vary between seasons and expeditions; summit height is the 2020 Nepal-China survey figure of 8,848.86 m.",
+  "domain": {
+    "from": 0,
+    "to": 3484.86,
+    "startLabel": "Base Camp",
+    "endLabel": "the summit"
+  },
+  "waypoints": [
+    {
+      "id": "icefall",
+      "at": 350,
+      "name": "The Khumbu Icefall",
+      "body": "A slow-moving river of ice that shifts a metre a day. Climbers cross it before dawn, on ladders, while it is still frozen solid."
+    },
+    {
+      "id": "camp-1",
+      "at": 701,
+      "name": "Camp One",
+      "body": "6,065 metres, at the top of the icefall. The air here holds about half the oxygen of sea level."
+    },
+    {
+      "id": "camp-2",
+      "at": 1036,
+      "name": "Camp Two",
+      "body": "6,400 metres, in the Western Cwm. It is nicknamed the Valley of Silence, and on a still day it is hot enough to burn."
+    },
+    {
+      "id": "camp-3",
+      "at": 1798,
+      "name": "Camp Three",
+      "body": "7,162 metres, cut into the Lhotse Face. Tents are pitched on a fifty-degree wall of blue ice."
+    },
+    {
+      "id": "death-zone",
+      "at": 2636,
+      "name": "The Death Zone",
+      "body": "Above 8,000 metres the body cannot acclimatise. From here on you are dying, and the only cure is to go down."
+    },
+    {
+      "id": "camp-4",
+      "at": 2542,
+      "name": "Camp Four, the South Col",
+      "body": "7,906 metres. Most summit attempts leave here around ten at night to reach the top by morning."
+    },
+    {
+      "id": "balcony",
+      "at": 3036,
+      "name": "The Balcony",
+      "body": "8,400 metres. A small platform where climbers change oxygen bottles, usually in the dark."
+    },
+    {
+      "id": "south-summit",
+      "at": 3385,
+      "name": "The South Summit",
+      "body": "8,749 metres, and a false top. The real summit is still ahead, along a knife-edge ridge."
+    },
+    {
+      "id": "hillary-step",
+      "at": 3426,
+      "name": "The Hillary Step",
+      "body": "A twelve-metre rock wall at 8,790 metres. It is where queues form, and where queues are dangerous."
+    },
+    {
+      "id": "summit",
+      "at": 3484.86,
+      "name": "The summit",
+      "body": "8,848.86 metres. Two thirds of the atmosphere is below you. Nobody stays more than a few minutes."
+    }
+  ]
+}

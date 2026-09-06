@@ -1,0 +1,79 @@
+{
+  "id": "solar-system",
+  "title": "The Solar System",
+  "subtitle": "The Sun to Pluto",
+  "unit": "million kilometres",
+  "unitShort": "M km",
+  "scale": "linear",
+  "power": { "exponent": 0.5 },
+  "precision": "exact",
+  "sourceNote": "Semi-major axes from the NASA planetary fact sheets.",
+  "domain": {
+    "from": 0,
+    "to": 5906.4,
+    "startLabel": "the Sun",
+    "endLabel": "Pluto"
+  },
+  "waypoints": [
+    {
+      "id": "mercury",
+      "at": 57.9,
+      "name": "Mercury",
+      "body": "The smallest planet and the fastest. A year here lasts 88 days. The day side reaches 430 degrees, the night side minus 180."
+    },
+    {
+      "id": "venus",
+      "at": 108.2,
+      "name": "Venus",
+      "body": "Earth's twin in size and nothing like it otherwise. Ninety atmospheres of pressure, clouds of sulphuric acid, and 464 degrees at the surface."
+    },
+    {
+      "id": "earth",
+      "at": 149.6,
+      "name": "Earth",
+      "body": "One astronomical unit, by definition. Sunlight takes eight minutes and twenty seconds to get here. You are already past home."
+    },
+    {
+      "id": "mars",
+      "at": 227.9,
+      "name": "Mars",
+      "body": "The last of the rocky planets — and that is all four of them, inside the first four percent of your route."
+    },
+    {
+      "id": "ceres",
+      "at": 413.7,
+      "name": "Ceres and the asteroid belt",
+      "body": "Mostly empty. If you flew straight through the belt you would be unlikely to see a single asteroid."
+    },
+    {
+      "id": "jupiter",
+      "at": 778.5,
+      "name": "Jupiter",
+      "body": "Two and a half times the mass of every other planet combined. The Great Red Spot has been turning for at least three hundred years."
+    },
+    {
+      "id": "saturn",
+      "at": 1432.0,
+      "name": "Saturn",
+      "body": "The rings are two hundred and eighty thousand kilometres across and only about ten metres thick."
+    },
+    {
+      "id": "uranus",
+      "at": 2867.0,
+      "name": "Uranus",
+      "body": "Tipped over on its side by ninety-eight degrees. Each pole gets forty-two years of continuous sunlight, then forty-two years of dark. Almost exactly the midpoint of your route."
+    },
+    {
+      "id": "neptune",
+      "at": 4495.1,
+      "name": "Neptune",
+      "body": "Winds of two thousand kilometres per hour, the fastest in the solar system. Sunlight here is nine hundred times dimmer than on Earth."
+    },
+    {
+      "id": "pluto",
+      "at": 5906.4,
+      "name": "Pluto",
+      "body": "You have arrived. New Horizons took nine and a half years to make this trip. From here the Sun is just the brightest star in the sky."
+    }
+  ]
+}

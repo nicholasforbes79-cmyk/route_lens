@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Route Lens — tests</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 16px 20px 60px; background: #12121f; color: #f1f0ff;
+         font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  h2 { font-size: 13px; margin: 22px 0 6px; color: #9b98b8; text-transform: uppercase;
+       letter-spacing: .08em; font-weight: 600; }
+  #summary { position: sticky; top: 0; background: #12121f; padding: 10px 0 12px;
+             border-bottom: 1px solid #2a2a45; margin-bottom: 8px; font-size: 16px; }
+  .ok   { color: #4ade80; }
+  .fail { color: #ff5c8a; }
+  li { list-style: none; padding: 2px 0; }
+  li.f { color: #ff5c8a; }
+  .detail { color: #9b98b8; padding-left: 20px; font-size: 12px; }
+  ul { margin: 0; padding: 0; }
+</style>
+</head>
+<body>
+<h1>Route Lens — geometry &amp; engine tests</h1>
+<div id="summary">running…</div>
+<div id="out"></div>
+
+<script type="module">
+import {
+  haversine, buildRoute, positionAt, positionAtDistance, projectToSegment,
+  snapGlobal, createSnapper, segmentIndexAt,
+} from './js/geo.js';
+import {
+  validateLens, scalePosition, domainValueAt, lensMilestones, crowdingReport,
+} from './js/lenses.js';
+import {
+  fractionMilestones, compileMilestones, createMilestoneEngine, fractionSpeech,
+} from './js/milestones.js';
+import { simulateFixes, outAndBack, straightLine, offsetMetres } from './js/simulator.js';
+
+const out = document.getElementById('out');
+let pass = 0, fail = 0, list = null;
+
+function group(name) {
+  const h = document.createElement('h2'); h.textContent = name; out.append(h);
+  list = document.createElement('ul'); out.append(list);
+}
+function record(okFlag, name, detail) {
+  const li = document.createElement('li');
+  li.className = okFlag ? '' : 'f';
+  li.textContent = `${okFlag ? 'PASS' : 'FAIL'}  ${name}`;
+  list.append(li);
+  if (!okFlag || detail) {
+    const d = document.createElement('div');
+    d.className = 'detail'; d.textContent = detail || '';
+    list.append(d);
+  }
+  okFlag ? pass++ : fail++;
+}
+const ok = (cond, name, detail) => record(!!cond, name, detail);
+function near(actual, expected, tol, name) {
+  const d = Math.abs(actual - expected);
+  record(d <= tol, name, `got ${actual}, expected ${expected} ±${tol} (off by ${d.toExponential(2)})`);
+}
+
+// ---------------------------------------------------------------- haversine
+group('haversine');
+{
+  // One degree of latitude on a sphere of the IUGG mean radius.
+  const oneDeg = 6371008.8 * Math.PI / 180;
+  near(haversine(0, 0, 1, 0), oneDeg, 0.001, 'one degree of latitude = 111,194.93 m');
+  near(haversine(0, 0, 0, 1), oneDeg, 0.001, 'one degree of longitude at the equator matches');
+  near(haversine(51.5, -0.12, 51.5, -0.12), 0, 1e-9, 'zero distance to itself');
+  near(haversine(51.5, -0.12, 48.86, 2.35),
+       haversine(48.86, 2.35, 51.5, -0.12), 1e-9, 'symmetric');
+  // London to Paris, a well-known great-circle distance.
+  near(haversine(51.5007, -0.1246, 48.8567, 2.3508) / 1000, 343.5, 1.5, 'London to Paris ≈ 343.5 km');
+}
+
+// -------------------------------------------------------------- buildRoute
+group('buildRoute');
+{
+  const coords = straightLine(51.5, -0.12, 1000, 11);
+  const r = buildRoute(coords);
+  record(r.count === 11, 'keeps all 11 distinct vertices', `count=${r.count}`);
+  near(r.total, 1000, 0.5, 'total length of a 1 km line');
+  near(r.cum[0], 0, 1e-9, 'cumulative table starts at zero');
+
+  let sum = 0; for (const s of r.segLen) sum += s;
+  near(sum, r.total, 1e-6, 'segLen sums to total');
+
+  const dupes = [coords[0], coords[0], coords[1], coords[1], coords[1], coords[2]];
+  const rd = buildRoute(dupes);
+  record(rd.count === 3, 'drops repeated vertices (ORS emits these at junctions)', `count=${rd.count}`);
+
+  let threw = false;
+  try { buildRoute([[0, 0]]); } catch { threw = true; }
+  ok(threw, 'rejects a single-point route');
+}
+
+// --------------------------------------------------------------- positionAt
+group('positionAt');
+{
+  const r = buildRoute(straightLine(51.5, -0.12, 1000, 11));
+  const a = positionAt(r, 0), b = positionAt(r, 1), m = positionAt(r, 0.5);
+  near(a.lat, 51.5, 1e-9, 'fraction 0 is the start');
+  near(haversine(a.lat, a.lng, m.lat, m.lng), 500, 0.5, 'fraction 0.5 is 500 m from the start');
+  near(haversine(m.lat, m.lng, b.lat, b.lng), 500, 0.5, 'fraction 0.5 is 500 m from the end');
+  near(positionAtDistance(r, 250).distance, 250, 1e-9, 'positionAtDistance round-trips');
+  near(positionAt(r, 2).fraction, 1, 1e-9, 'fractions above 1 clamp');
+  near(positionAt(r, -1).fraction, 0, 1e-9, 'fractions below 0 clamp');
+
+  let mono = true, prev = -1;
+  for (let f = 0; f <= 1; f += 0.01) {
+    const i = segmentIndexAt(r, f * r.total);
+    if (i < prev) mono = false;
+    prev = i;
+  }
+  ok(mono, 'segmentIndexAt is monotonic across the route');
+}
+
+// ----------------------------------------------------------- point-to-line
+group('projectToSegment');
+{
+  const A = { lat: 51.5, lng: -0.12 };
+  const B = offsetMetres(A.lat, A.lng, 1000, 0);
+  const mid = offsetMetres(A.lat, A.lng, 500, 0);
+  const off = offsetMetres(mid.lat, mid.lng, 0, 30);   // 30 m north of the midpoint
+
+  const p = projectToSegment(off.lat, off.lng, A.lat, A.lng, B.lat, B.lng);
+  near(p.distance, 30, 0.2, 'a point 30 m off the line reports 30 m');
+  near(p.t, 0.5, 0.005, 'and projects to the middle of the segment');
+
+  const before = offsetMetres(A.lat, A.lng, -100, 0);
+  const q = projectToSegment(before.lat, before.lng, A.lat, A.lng, B.lat, B.lng);
+  near(q.t, 0, 1e-9, 'a point beyond A clamps to t=0');
+  near(q.distance, 100, 0.2, 'and reports the distance to A');
+}
+
+// ------------------------------------------------------------ snapping
+group('snapGlobal');
+{
+  const r = buildRoute(straightLine(51.5, -0.12, 1000, 11));
+  const p = positionAtDistance(r, 300);
+  const off = offsetMetres(p.lat, p.lng, 0, 20);
+  const s = snapGlobal(r, off.lat, off.lng);
+  near(s.along, 300, 1, 'snaps to 300 m along');
+  near(s.distance, 20, 0.2, 'reports 20 m off the line');
+}
+
+// ------------------------------------------- the out-and-back killer case
+group('snapper: out-and-back (the case that breaks naive implementations)');
+{
+  const coords = outAndBack(straightLine(51.5, -0.12, 1000, 21));
+  const r = buildRoute(coords);
+  near(r.total, 2000, 1, 'out-and-back route is 2 km long');
+
+  // Walking the whole thing: progress must track truth all the way, never
+  // teleporting onto the return leg that lies 0 m away in space.
+  const fixes = simulateFixes(r, { speedMps: 1.4, intervalS: 1, noiseM: 0 });
+  const snapper = createSnapper(r);
+  let worst = 0, worstAt = 0;
+  for (const f of fixes) {
+    const s = snapper.update(f.lat, f.lng, f.accuracy, f.speed);
+    const err = Math.abs(s.along - f.trueD);
+    if (err > worst) { worst = err; worstAt = f.trueD; }
+  }
+  record(worst < 30, 'tracks the full out-and-back without teleporting',
+         `worst error ${worst.toFixed(1)} m at ${worstAt.toFixed(0)} m along`);
+  near(snapper.state.along, 2000, 30, 'finishes at the end, not the middle');
+
+  // Explicitly: partway along the outbound leg we must not be snapped to the
+  // matching point on the return leg.
+  const s2 = createSnapper(r);
+  for (const f of simulateFixes(r, { endD: 200, noiseM: 0 })) {
+    s2.update(f.lat, f.lng, f.accuracy, f.speed);
+  }
+  record(s2.state.along < 400, 'at 200 m out, progress is not on the return leg',
+         `along = ${s2.state.along.toFixed(1)} m (naive global snap would allow ~1800)`);
+}
+
+// --------------------------------- self-crossing routes, under real noise
+group('snapper: self-crossing routes with noise');
+{
+  const track = (coords, opts) => {
+    const r = buildRoute(coords);
+    const s = createSnapper(r);
+    let worst = 0;
+    for (const f of simulateFixes(r, opts)) {
+      const st = s.update(f.lat, f.lng, f.accuracy, f.speed);
+      worst = Math.max(worst, Math.abs(st.along - f.trueD));
+    }
+    return { worst, end: s.state.along, total: r.total };
+  };
+
+  const outBack = outAndBack(straightLine(51.5, -0.12, 1000, 21));
+  for (const noise of [5, 10, 15]) {
+    for (const seed of [1, 42]) {
+      const { end, total } = track(outBack, { speedMps: 1.4, noiseM: noise, seed });
+      record(Math.abs(end - total) < 40,
+             `out-and-back finishes at the end with ${noise} m noise (seed ${seed})`,
+             `ended at ${end.toFixed(1)} of ${total.toFixed(1)} m`);
+    }
+  }
+
+  // A figure-of-eight genuinely crosses itself, so the naive nearest-segment
+  // search has a real chance to jump onto the wrong lobe.
+  const fig8 = [];
+  for (let i = 0; i <= 60; i++) {
+    const a = (i / 60) * 2 * Math.PI;
+    const o = offsetMetres(51.5, -0.12, 300 * Math.sin(a), 200 * Math.sin(2 * a));
+    fig8.push([o.lng, o.lat]);
+  }
+  const f8 = track(fig8, { speedMps: 1.4, noiseM: 8, seed: 5 });
+  record(f8.worst < 60, 'figure-of-eight never jumps to the other lobe',
+         `worst error ${f8.worst.toFixed(1)} m`);
+  record(Math.abs(f8.end - f8.total) < 40, 'and completes the full loop',
+         `ended at ${f8.end.toFixed(1)} of ${f8.total.toFixed(1)} m`);
+
+  // Cycling: faster, sparser fixes, so the forward window has to widen.
+  const bike = track(outBack, { speedMps: 5, intervalS: 2, noiseM: 10, seed: 9 });
+  record(Math.abs(bike.end - bike.total) < 60, 'holds up at cycling speed with 2 s fixes',
+         `ended at ${bike.end.toFixed(1)} of ${bike.total.toFixed(1)} m`);
+}
+
+// ------------------------------------------------- jitter and off-route
+group('snapper: noise handling');
+{
+  const r = buildRoute(straightLine(51.5, -0.12, 2000, 41));
+
+  // Standing still with noisy fixes must never walk the progress backwards.
+  const s = createSnapper(r);
+  s.seed(500);
+  const jitter = simulateFixes(r, {
+    startD: 500, endD: 500.1, speedMps: 0, intervalS: 1, noiseM: 12, seed: 7,
+    stationary: { atD: 500, seconds: 60 },
+  });
+  let minAlong = Infinity, maxAlong = -Infinity;
+  for (const f of jitter) {
+    const st = s.update(f.lat, f.lng, f.accuracy, 0);
+    minAlong = Math.min(minAlong, st.along);
+    maxAlong = Math.max(maxAlong, st.along);
+  }
+  record(minAlong >= 500 - 1e-6, 'standing still never moves progress backwards',
+         `range ${minAlong.toFixed(1)}–${maxAlong.toFixed(1)} m over 60 noisy fixes`);
+  // Progress is a ratchet, so with 12 m noise the max is roughly the largest
+  // along-track excursion over the burst — a couple of sigma, not unbounded.
+  record(maxAlong - 500 < 60, 'and does not drift far forwards either',
+         `drifted ${(maxAlong - 500).toFixed(1)} m`);
+
+  // Wandering well off the line must be reported, not silently absorbed.
+  const s3 = createSnapper(r);
+  s3.seed(500);
+  const p = positionAtDistance(r, 520);
+  let st;
+  for (let i = 0; i < 5; i++) {
+    const away = offsetMetres(p.lat, p.lng, 0, 300);
+    st = s3.update(away.lat, away.lng, 10, 0);
+  }
+  ok(st.offRoute, 'a 300 m excursion is flagged as off-route');
+  near(s3.state.along, 500, 1, 'and progress freezes rather than jumping');
+
+  // Vague fixes are discarded rather than trusted.
+  const s4 = createSnapper(r);
+  s4.seed(100);
+  const bad = s4.update(51.6, -0.2, 500, 0);
+  record(bad.accepted === false && bad.reason === 'accuracy',
+         'a fix with 500 m accuracy is rejected', `reason=${bad.reason}`);
+}
+
+// ------------------------------------------------------------------ lenses
+group('lenses');
+{
+  const res = await fetch('lenses/solar-system.json');
+  const solar = validateLens(await res.json());
+  const ms = lensMilestones(solar);
+  const at = (id) => ms.find((m) => m.key.endsWith(`:${id}`));
+
+  near(at('jupiter').fraction, 778.5 / 5906.4, 1e-9, 'Jupiter sits at 13.18% (linear)');
+  near(at('uranus').fraction, 2867.0 / 5906.4, 1e-9, 'Uranus sits at 48.54% — almost exactly halfway');
+  near(at('pluto').fraction, 1, 1e-9, 'Pluto is the end of the route');
+  record(ms.length === 10, 'ten waypoints survive validation', `got ${ms.length}`);
+
+  let sorted = true;
+  for (let i = 1; i < ms.length; i++) if (ms[i].fraction < ms[i - 1].fraction) sorted = false;
+  ok(sorted, 'waypoints come out sorted by position');
+
+  const report = crowdingReport(solar);
+  record(report.crowded && report.headShare === 0.4,
+         'crowding report flags the four inner planets in the first 5%',
+         `headShare=${report.headShare}, maxGap=${report.maxGap.toFixed(3)}`);
+
+  // Power 0.5 on a domain where values go as n-squared spaces them evenly —
+  // which is exactly why the Bohr atom lens uses it.
+  const shells = {
+    id: 'shells', title: 'Shells', scale: 'power', power: { exponent: 0.5 },
+    domain: { from: 0, to: 49 },
+    waypoints: [1, 4, 9, 16, 25, 36, 49].map((n, i) => ({ at: n, name: `n=${i + 1}` })),
+  };
+  const sm = lensMilestones(shells);
+  let evenlySpaced = true;
+  sm.forEach((m, i) => { if (Math.abs(m.fraction - (i + 1) / 7) > 1e-9) evenlySpaced = false; });
+  ok(evenlySpaced, 'power-0.5 turns an n-squared domain into even spacing');
+
+  // Round-tripping through the scale and back must be lossless.
+  for (const scale of ['linear', 'power', 'log']) {
+    const l = { ...shells, scale };
+    let worst = 0;
+    for (let f = 0; f <= 1; f += 0.05) {
+      worst = Math.max(worst, Math.abs(scalePosition(l, domainValueAt(l, f)) - f));
+    }
+    near(worst, 0, 1e-9, `${scale} scale round-trips through domainValueAt`);
+  }
+
+  const ranked = lensMilestones({ ...shells, scale: 'rank' });
+  near(ranked[3].fraction, 4 / 7, 1e-9, 'rank scale ignores values and spreads evenly');
+  near(ranked[0].fraction, 1 / 7, 1e-9, 'and puts nothing at fraction zero, where it would be skipped');
+  near(ranked[6].fraction, 1, 1e-9, 'with the last waypoint at the end');
+
+  let bad = false;
+  try { validateLens({ id: 'x', title: 'x', domain: { from: 10, to: 1 }, waypoints: [{ at: 1, name: 'a' }] }); }
+  catch { bad = true; }
+  ok(bad, 'rejects a domain that runs backwards');
+}
+
+// -------------------------------------------------------------- fractions
+group('fractions');
+{
+  const fm = fractionMilestones([2, 10], 1000);
+  record(fm.length === 9, 'quarters plus tenths gives 9 unique points, not 10', `got ${fm.length}`);
+  const half = fm.find((m) => Math.abs(m.fraction - 0.5) < 1e-9);
+  record(half.title === '1/2', 'the shared 50% point is labelled 1/2, not 5/10', `got ${half.title}`);
+
+  const f14 = fractionMilestones([14], 1400);
+  near(f14.find((m) => m.title === '3/14').d, 300, 1e-9, '3/14 of a 1400 m route is at 300 m');
+  record(fractionSpeech(3, 14) === 'three fourteenths of the way',
+         'speaks 3/14 as "three fourteenths of the way"', fractionSpeech(3, 14));
+  record(fractionSpeech(1, 2) === 'halfway', 'speaks 1/2 as "halfway"');
+  record(fractionSpeech(3, 10) === '30 percent of the way', 'speaks tenths as percentages');
+}
+
+// ------------------------------------------------------------- the engine
+group('milestone engine');
+{
+  const total = 1000;
+  const ms = compileMilestones(total, { denominators: [4], minSpacingM: 10 });
+  record(ms.length === 4, 'quarters on a 1 km route give 3 fractions plus arrival', `got ${ms.length}`);
+
+  const e = createMilestoneEngine(ms, total);
+  ok(e.update(100) === null, 'nothing fires before the first milestone');
+
+  const a = e.update(260);
+  record(a && a.headline.title === '1/4' && a.skipped.length === 0, 'fires 1/4 on crossing 250 m');
+  ok(e.update(270) === null, 'does not fire again just past it');
+  ok(e.update(255) === null, 'does not re-fire on a small backwards slip');
+  ok(e.update(200) === null, 'does not re-fire 50 m behind it either');
+
+  // Catch-up: a long gap must coalesce, not machine-gun.
+  const e2 = createMilestoneEngine(compileMilestones(total, { denominators: [4], minSpacingM: 10 }), total);
+  const c = e2.update(800);
+  record(c.headline.title === '3/4', 'after a gap, the headline is the most recent milestone');
+  record(c.skipped.length === 2, 'and the two skipped ones are folded in', `skipped ${c.skipped.length}`);
+  record(/passed 1\/4 and 1\/2/.test(c.speech), 'the utterance names them once', c.speech);
+  ok(e2.update(810) === null, 'and none of them fire a second time');
+
+  // Seeding mid-route.
+  const e3 = createMilestoneEngine(compileMilestones(total, { denominators: [4], minSpacingM: 10 }), total);
+  const seeded = e3.seedAt(600);
+  record(seeded.length === 2, 'starting at 60% marks 1/4 and 1/2 as already passed', `${seeded.length}`);
+  ok(e3.update(610) === null, 'and they do not then announce themselves');
+  record(e3.nextAfter(610).title === '3/4', 'next-up is 3/4');
+
+  // Serialise / restore across a reload.
+  const e4 = createMilestoneEngine(compileMilestones(total, { denominators: [4], minSpacingM: 10 }), total);
+  e4.update(600);
+  const saved = JSON.parse(JSON.stringify(e4.serialize()));
+  const e5 = createMilestoneEngine(compileMilestones(total, { denominators: [4], minSpacingM: 10 }), total);
+  e5.restore(saved);
+  ok(e5.update(610) === null, 'restored state does not replay the walk so far');
+
+  // Coalescing dense milestones.
+  const dense = compileMilestones(1200, { denominators: [10], minSpacingM: 200 });
+  record(dense.length < 10, 'on a short route, close milestones merge into fewer alerts',
+         `${dense.length} alerts instead of 10`);
+  const merged = dense.find((m) => m.alsoPassed.length > 0);
+  ok(merged, 'and the merged ones are carried as alsoPassed');
+}
+
+// ------------------------------------------ end-to-end: walk with a lens
+group('end to end: a 10 km walk across the solar system');
+{
+  const r = buildRoute(straightLine(51.5, -0.12, 10000, 201));
+  const solar = validateLens(await (await fetch('lenses/solar-system.json')).json());
+  const ms = compileMilestones(r.total, { denominators: [4], lens: solar, minSpacingM: 100 });
+
+  const jupiter = ms.find((m) => m.title === 'Jupiter');
+  near(jupiter.d, 0.131807 * 10000, 5, 'Jupiter falls at 1.32 km into a 10 km walk');
+
+  const engine = createMilestoneEngine(ms, r.total);
+  const snapper = createSnapper(r);
+  const fired = [];
+  for (const f of simulateFixes(r, { speedMps: 1.4, intervalS: 5, noiseM: 6, seed: 3 })) {
+    const st = snapper.update(f.lat, f.lng, f.accuracy, f.speed);
+    if (!st.accepted) continue;
+    const ev = engine.update(st.along, { confident: !st.offRoute });
+    if (ev) fired.push(...ev.all);
+  }
+
+  const keys = fired.map((m) => m.key);
+  record(new Set(keys).size === keys.length, 'every milestone fires exactly once', `${keys.length} alerts`);
+  record(fired.some((m) => m.title === 'Jupiter'), 'Jupiter was announced');
+  record(fired.some((m) => m.title === 'Neptune'), 'Neptune was announced');
+  record(fired[fired.length - 1].kind === 'arrival', 'the last alert is the arrival');
+
+  let ordered = true;
+  for (let i = 1; i < fired.length; i++) if (fired[i].d < fired[i - 1].d) ordered = false;
+  ok(ordered, 'and they arrive in route order');
+  record(engine.remaining.length === 0, 'nothing is left unfired at the end',
+         `${engine.remaining.length} unfired`);
+}
+
+// ------------------------------------------------------------------ done
+const s = document.getElementById('summary');
+s.innerHTML = fail === 0
+  ? `<span class="ok">All ${pass} assertions passed.</span>`
+  : `<span class="fail">${fail} failed</span> · <span class="ok">${pass} passed</span>`;
+window.__results = { pass, fail };
+console.log(`tests: ${pass} passed, ${fail} failed`);
+</script>
+</body>
+</html>

@@ -1,0 +1,331 @@
+:root {
+  color-scheme: dark;
+  --bg: #12121f;
+  --bg-elevated: #1c1c30;
+  --bg-input: #14142400;
+  --text: #f1f0ff;
+  --text-dim: #9b98b8;
+  --accent: #6c5ce7;
+  --accent-2: #ff5c8a;
+  --border: #2a2a45;
+  --ok: #4ade80;
+  --warn: #fbbf24;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;          /* kills pull-to-refresh mid-journey */
+}
+
+.app { height: 100dvh; overflow: hidden; }
+
+.screen {
+  display: none;
+  height: 100dvh;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+}
+.screen.is-active { display: flex; }
+
+/* ------------------------------------------------------------------- bars */
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  flex: 0 0 auto;
+}
+.bar h1 { font-size: 17px; margin: 0; flex: 1; font-weight: 600; letter-spacing: .01em; }
+
+.icon-btn {
+  width: 44px; height: 44px;
+  border: 0; border-radius: 12px;
+  background: transparent; color: var(--text);
+  font-size: 20px; line-height: 1;
+  cursor: pointer;
+}
+.icon-btn:active { background: var(--bg-elevated); }
+
+/* -------------------------------------------------------------------- map */
+.map { flex: 1 1 auto; min-height: 0; background: #0d0d18; }
+.leaflet-container { background: #0d0d18; font: inherit; }
+.leaflet-control-attribution { background: rgba(18,18,31,.8); color: var(--text-dim); }
+.leaflet-control-attribution a { color: var(--text-dim); }
+
+/* ------------------------------------------------------------ bottom panel */
+.panel {
+  flex: 0 0 auto;
+  padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  display: grid;
+  gap: 10px;
+}
+
+.endpoints { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.endpoint {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px;
+  min-height: 56px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.endpoint.is-armed { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.endpoint-text { display: grid; min-width: 0; }
+.endpoint-text b { font-size: 13px; font-weight: 600; }
+.endpoint-text em {
+  font-style: normal; font-size: 12px; color: var(--text-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.dot { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto; }
+.dot-start { background: var(--ok); }
+.dot-end { background: var(--accent-2); }
+
+.row { display: flex; gap: 8px; }
+.row > * { flex: 1; }
+
+.primary-btn {
+  width: 100%;
+  min-height: 52px;
+  border: 0; border-radius: 14px;
+  background: var(--accent); color: #fff;
+  font: 600 17px/1 system-ui, sans-serif;
+  cursor: pointer;
+}
+.primary-btn:disabled { background: var(--bg-elevated); color: var(--text-dim); }
+.primary-btn:active:not(:disabled) { transform: translateY(1px); }
+
+.ghost-btn, .select, .text-input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.text-input { width: 100%; cursor: text; }
+
+.status { margin: 0; font-size: 13px; color: var(--text-dim); min-height: 1.2em; }
+.status.is-error { color: var(--accent-2); }
+.status.is-ok { color: var(--ok); }
+
+/* ---------------------------------------------------------------- scroller */
+.scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 14px 24px;
+}
+.scroll h2 {
+  font-size: 13px; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--text-dim); margin: 22px 0 4px; font-weight: 600;
+}
+.scroll h2:first-child { margin-top: 4px; }
+.hint { margin: 0 0 10px; font-size: 13px; color: var(--text-dim); }
+.summary { margin: 0; font-size: 15px; }
+.summary b { font-size: 22px; }
+
+/* ------------------------------------------------------------------- chips */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 9px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  font: 14px/1 system-ui, sans-serif;
+  cursor: pointer;
+}
+.chip.is-on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.custom-denominator {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 10px; font-size: 13px; color: var(--text-dim);
+}
+.custom-denominator input {
+  width: 76px; min-height: 40px; padding: 0 10px;
+  border: 1px solid var(--border); border-radius: 10px;
+  background: var(--bg-elevated); color: var(--text); font: inherit;
+}
+
+/* ------------------------------------------------------------------ lenses */
+.lens-list { display: grid; gap: 8px; }
+.lens {
+  display: grid; gap: 2px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.lens.is-on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.lens b { font-size: 15px; font-weight: 600; }
+.lens span { font-size: 13px; color: var(--text-dim); }
+
+.crowding {
+  margin-top: 12px; padding: 12px;
+  border: 1px solid var(--warn); border-radius: 12px;
+  background: rgba(251, 191, 36, .08);
+  font-size: 13px;
+}
+.crowding button { margin-top: 8px; }
+
+/* ----------------------------------------------------------------- preview */
+.preview { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.preview li {
+  display: grid; grid-template-columns: 60px 1fr; gap: 10px; align-items: baseline;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  font-size: 14px;
+}
+.preview .at { color: var(--accent); font-variant-numeric: tabular-nums; font-size: 13px; }
+.preview .also { display: block; font-size: 12px; color: var(--text-dim); }
+
+.toggle {
+  display: flex; align-items: center; gap: 10px;
+  min-height: 48px; font-size: 15px; cursor: pointer;
+}
+.toggle input { width: 20px; height: 20px; accent-color: var(--accent); }
+
+/* ------------------------------------------------------------ journey screen
+   Everything that matters is in the bottom half: a thumb cannot reach the top
+   of a big phone one-handed, and a phone on handlebars is glanced at, not read.
+*/
+#screen-journey { position: relative; }
+
+.ribbon {
+  position: relative;
+  flex: 0 0 auto;
+  height: 14px;
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+.ribbon-fill { height: 100%; width: 0; background: var(--accent); transition: width .4s ease; }
+.ribbon-tick {
+  position: absolute; top: 0; width: 2px; height: 14px;
+  background: var(--text-dim); opacity: .55;
+}
+/* Namespaced deliberately: a bare `.lens` here collides with the lens-picker
+   buttons on the setup screen and inflates each tick into a 25px circle. */
+.ribbon-tick.tick-lens { background: var(--accent-2); width: 3px; opacity: .9; }
+.ribbon-tick.done { opacity: .25; }
+
+.banner {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  background: rgba(251, 191, 36, .14);
+  border-bottom: 1px solid var(--warn);
+  color: var(--warn);
+  font-size: 14px;
+}
+.banner.is-bad { background: rgba(255, 92, 138, .14); border-color: var(--accent-2); color: var(--accent-2); }
+
+.readout { flex: 0 0 auto; padding: 14px 16px 6px; text-align: center; }
+.big {
+  font-size: clamp(56px, 20vw, 92px);
+  line-height: 1;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em;
+}
+.lens-readout { margin-top: 4px; font-size: 19px; color: var(--text); }
+.true-readout { margin-top: 2px; font-size: 13px; color: var(--text-dim); font-style: italic; }
+
+.journey-map { flex: 1 1 auto; min-height: 120px; background: #0d0d18; }
+
+.next-up {
+  flex: 0 0 auto;
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+.next-label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-dim); }
+.next-up b { font-size: 19px; font-weight: 600; flex: 1; min-width: 0;
+             overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.next-distance { font-size: 15px; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+.stats {
+  flex: 0 0 auto;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+.stats b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; }
+.stats span { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; }
+
+.controls {
+  flex: 0 0 auto;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+}
+.ctl {
+  display: grid; gap: 2px; justify-items: center;
+  min-height: 62px;
+  border: 0; border-radius: 12px;
+  background: var(--bg-elevated); color: var(--text);
+  font: 11px/1 system-ui, sans-serif;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.ctl span { font-size: 21px; }
+.ctl.is-off { color: var(--text-dim); opacity: .6; }
+.ctl:active { background: var(--border); }
+
+.alert-card {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 20px 20px calc(24px + env(safe-area-inset-bottom));
+  background: var(--bg-elevated);
+  border-top: 3px solid var(--accent);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, .55);
+  animation: rise .28s ease;
+  z-index: 500;
+  max-height: 65%;
+  overflow-y: auto;
+}
+@keyframes rise { from { transform: translateY(100%); } to { transform: none; } }
+.alert-card h2 { margin: 4px 0 8px; font-size: 27px; line-height: 1.15; }
+.alert-card p { margin: 0; font-size: 16px; line-height: 1.45; }
+.alert-kicker {
+  font-size: 12px; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--accent);
+}
+.alert-also { margin-top: 10px; font-size: 13px; color: var(--text-dim); }
+.alert-close {
+  position: absolute; top: 8px; right: 8px;
+  width: 44px; height: 44px;
+  border: 0; background: transparent; color: var(--text-dim);
+  font-size: 18px; cursor: pointer;
+}
+
+/* Milestone markers drawn on the planning map. */
+.tick {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg);
+  box-shadow: 0 0 0 1px var(--accent);
+}

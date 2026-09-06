@@ -1,0 +1,60 @@
+{
+  "id": "marathon",
+  "title": "A Marathon",
+  "subtitle": "42.195 km, start to finish line",
+  "unit": "kilometres",
+  "unitShort": "km",
+  "scale": "linear",
+  "precision": "exact",
+  "sourceNote": "The official distance, fixed at 42.195 km in 1921.",
+  "domain": {
+    "from": 0,
+    "to": 42.195,
+    "startLabel": "the start line",
+    "endLabel": "the finish"
+  },
+  "waypoints": [
+    {
+      "id": "5k",
+      "at": 5,
+      "name": "5 kilometres",
+      "body": "The crowd has thinned and everyone has stopped sprinting. Experienced runners are deliberately going slower than feels right."
+    },
+    {
+      "id": "10k",
+      "at": 10,
+      "name": "10 kilometres",
+      "body": "Comfortably into rhythm. This is roughly where the race stops being fun and starts being work."
+    },
+    {
+      "id": "half",
+      "at": 21.0975,
+      "name": "Halfway",
+      "body": "The old runner's saying: the first half is twenty-one kilometres, and the second half is the last ten."
+    },
+    {
+      "id": "30k",
+      "at": 30,
+      "name": "30 kilometres",
+      "body": "Glycogen stores are running out. Most marathons are won or lost in the next few kilometres."
+    },
+    {
+      "id": "wall",
+      "at": 32,
+      "name": "The Wall",
+      "body": "Around twenty miles, the body switches to burning fat and the pace drops hard. Some runners describe it as the lights going out."
+    },
+    {
+      "id": "40k",
+      "at": 40,
+      "name": "40 kilometres",
+      "body": "Two kilometres left. This is where the noise of the crowd starts doing the work your legs cannot."
+    },
+    {
+      "id": "finish",
+      "at": 42.195,
+      "name": "The finish",
+      "body": "The extra 195 metres was added in 1908 so the London race could finish in front of the royal box. It was never removed."
+    }
+  ]
+}

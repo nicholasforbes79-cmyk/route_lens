@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12121f">
+<title>Route Lens</title>
+
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+<!-- Version pinned deliberately: an unpinned CDN URL breaks the offline cache. -->
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+      crossorigin="anonymous" referrerpolicy="no-referrer">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ------------------------------------------------------ plan a route -->
+  <section id="screen-plan" class="screen is-active">
+    <header class="bar">
+      <h1>Route Lens</h1>
+      <button id="open-settings" class="icon-btn" type="button" aria-label="Settings">&#9881;</button>
+    </header>
+
+    <div id="map" class="map"></div>
+
+    <div class="panel">
+      <div class="endpoints">
+        <button id="pick-start" class="endpoint is-armed" type="button" data-role="start">
+          <span class="dot dot-start"></span>
+          <span class="endpoint-text"><b>Start</b><em id="start-label">tap the map</em></span>
+        </button>
+        <button id="pick-end" class="endpoint" type="button" data-role="end">
+          <span class="dot dot-end"></span>
+          <span class="endpoint-text"><b>End</b><em id="end-label">tap the map</em></span>
+        </button>
+      </div>
+
+      <div class="row">
+        <button id="use-location" class="ghost-btn" type="button">Use my location</button>
+        <select id="profile" class="select" aria-label="Travel mode"></select>
+      </div>
+
+      <p id="plan-status" class="status" role="status"></p>
+
+      <button id="get-route" class="primary-btn" type="button" disabled>Get route</button>
+    </div>
+  </section>
+
+  <!-- --------------------------------------------------- choose milestones -->
+  <section id="screen-setup" class="screen">
+    <header class="bar">
+      <button id="setup-back" class="icon-btn" type="button" aria-label="Back">&#8592;</button>
+      <h1>Milestones</h1>
+    </header>
+
+    <div class="scroll">
+      <p id="route-summary" class="summary"></p>
+
+      <h2>Fractions</h2>
+      <p class="hint">Get told when you cross each one.</p>
+      <div id="fraction-chips" class="chips"></div>
+      <label class="custom-denominator">
+        Or any denominator:
+        <input id="custom-denominator" type="number" min="2" max="100" inputmode="numeric"
+               placeholder="14">
+        <button id="add-denominator" class="ghost-btn" type="button">Add</button>
+      </label>
+
+      <h2>Lens</h2>
+      <p class="hint">Reframe the route as a different journey.</p>
+      <div id="lens-list" class="lens-list"></div>
+
+      <div id="crowding" class="crowding" hidden></div>
+
+      <h2>Preview</h2>
+      <p id="milestone-count" class="hint"></p>
+      <ol id="milestone-preview" class="preview"></ol>
+    </div>
+
+    <div class="panel">
+      <button id="start-journey" class="primary-btn" type="button">Start journey</button>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------- live journey -->
+  <section id="screen-journey" class="screen">
+    <div id="ribbon" class="ribbon"><div id="ribbon-fill" class="ribbon-fill"></div></div>
+
+    <div id="journey-banner" class="banner" hidden></div>
+
+    <div class="readout">
+      <div id="big-fraction" class="big">0%</div>
+      <div id="lens-readout" class="lens-readout"></div>
+      <div id="true-readout" class="true-readout"></div>
+    </div>
+
+    <div id="journey-map" class="journey-map"></div>
+
+    <div class="next-up">
+      <span class="next-label">Next</span>
+      <b id="next-title">—</b>
+      <span id="next-distance" class="next-distance"></span>
+    </div>
+
+    <div class="stats">
+      <div><b id="stat-done">0 m</b><span>travelled</span></div>
+      <div><b id="stat-left">—</b><span>remaining</span></div>
+      <div><b id="stat-time">0:00</b><span>elapsed</span></div>
+    </div>
+
+    <div class="controls">
+      <button id="ctl-mute" class="ctl" type="button"><span>🔊</span>Sound</button>
+      <button id="ctl-repeat" class="ctl" type="button"><span>↺</span>Repeat</button>
+      <button id="ctl-pause" class="ctl" type="button"><span>⏸</span>Pause</button>
+      <button id="ctl-end" class="ctl" type="button"><span>✕</span>End</button>
+    </div>
+
+    <div id="alert-card" class="alert-card" hidden>
+      <button id="alert-close" class="alert-close" type="button" aria-label="Dismiss">✕</button>
+      <div id="alert-kicker" class="alert-kicker"></div>
+      <h2 id="alert-title"></h2>
+      <p id="alert-body"></p>
+      <p id="alert-also" class="alert-also"></p>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------ settings -->
+  <section id="screen-settings" class="screen">
+    <header class="bar">
+      <button id="settings-back" class="icon-btn" type="button" aria-label="Back">&#8592;</button>
+      <h1>Settings</h1>
+    </header>
+
+    <div class="scroll">
+      <h2>OpenRouteService key</h2>
+      <p class="hint">
+        Free, no card, from openrouteservice.org. Without one the app falls back to a
+        straight line between your points, which is fine for trying things out.
+        The key is stored on this device only.
+      </p>
+      <input id="api-key" class="text-input" type="password" autocomplete="off"
+             placeholder="Paste your API key">
+      <button id="save-key" class="ghost-btn" type="button">Save key</button>
+      <p id="key-status" class="status"></p>
+
+      <h2>Alerts</h2>
+      <label class="toggle"><input id="opt-speech" type="checkbox"> Speak milestones aloud</label>
+      <label class="toggle"><input id="opt-vibrate" type="checkbox"> Vibrate</label>
+      <label class="toggle"><input id="opt-wakelock" type="checkbox"> Keep the screen awake</label>
+      <button id="test-voice" class="ghost-btn" type="button">Test voice and vibration</button>
+      <p id="voice-status" class="status"></p>
+
+      <h2>About</h2>
+      <p class="hint">
+        Map data &copy; OpenStreetMap contributors. Routing by OpenRouteService.
+        With the screen off, Android suspends the page and tracking stops &mdash;
+        keep the screen on during a journey.
+      </p>
+    </div>
+  </section>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

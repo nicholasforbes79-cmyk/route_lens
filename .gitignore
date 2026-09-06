@@ -1,0 +1,9 @@
+# Nothing here is built, so this list is short by design.
+.DS_Store
+Thumbs.db
+*.log
+
+# Local-only editor and tooling state
+.vscode/
+.idea/
+.claude/settings.local.json

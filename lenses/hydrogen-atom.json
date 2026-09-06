@@ -1,0 +1,67 @@
+{
+  "id": "hydrogen-atom",
+  "title": "Inside an Atom",
+  "subtitle": "The nucleus out to the seventh electron shell",
+  "unit": "picometres",
+  "unitShort": "pm",
+  "scale": "power",
+  "power": { "exponent": 0.5 },
+  "precision": "exact",
+  "sourceNote": "Bohr radii (n squared times 52.9 pm). Shell radii are a simplified model, but the numbers are real.",
+  "domain": {
+    "from": 0,
+    "to": 2592.1,
+    "startLabel": "the nucleus",
+    "endLabel": "the seventh shell"
+  },
+  "waypoints": [
+    {
+      "id": "proton",
+      "at": 0.00084,
+      "name": "The edge of the nucleus",
+      "body": "That is the whole nucleus behind you already. It holds virtually all the atom's mass in about a millionth of its width. Everything ahead is essentially empty."
+    },
+    {
+      "id": "shell-1",
+      "at": 52.9,
+      "name": "The first shell",
+      "body": "The Bohr radius, 52.9 picometres. This is where hydrogen's single electron is most likely to be found. It is sixty thousand times further out than the nucleus edge."
+    },
+    {
+      "id": "shell-2",
+      "at": 211.6,
+      "name": "The second shell",
+      "body": "Four times further out than the first. Shells grow as the square of their number, so each one is a bigger jump than the last."
+    },
+    {
+      "id": "shell-3",
+      "at": 476.1,
+      "name": "The third shell",
+      "body": "Sodium, magnesium and the rest of the third row keep their outermost electrons about here."
+    },
+    {
+      "id": "shell-4",
+      "at": 846.4,
+      "name": "The fourth shell",
+      "body": "Where the transition metals begin. Iron, copper and zinc all do their chemistry from roughly this distance out."
+    },
+    {
+      "id": "shell-5",
+      "at": 1322.5,
+      "name": "The fifth shell",
+      "body": "Silver and tin territory. The atom is now twenty-five times wider than the first shell, and still almost entirely empty space."
+    },
+    {
+      "id": "shell-6",
+      "at": 1904.4,
+      "name": "The sixth shell",
+      "body": "Gold, mercury and lead. Electrons out here move fast enough that relativity starts to matter, which is why gold looks yellow."
+    },
+    {
+      "id": "shell-7",
+      "at": 2592.1,
+      "name": "The seventh shell",
+      "body": "The outer edge, where uranium and the heaviest elements keep their last electrons. You have crossed an atom, and nearly all of it was nothing at all."
+    }
+  ]
+}

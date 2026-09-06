@@ -1,0 +1,85 @@
+{
+  "id": "ocean-depth",
+  "title": "Into the Deep",
+  "subtitle": "The sea surface down to the Challenger Deep",
+  "unit": "metres",
+  "unitShort": "m",
+  "scale": "linear",
+  "power": { "exponent": 0.5 },
+  "precision": "exact",
+  "sourceNote": "Challenger Deep depth from the 2019 Five Deeps Expedition sounding, 10,935 m.",
+  "domain": {
+    "from": 0,
+    "to": 10935,
+    "startLabel": "the surface",
+    "endLabel": "the Challenger Deep"
+  },
+  "waypoints": [
+    {
+      "id": "scuba",
+      "at": 40,
+      "name": "Recreational diving limit",
+      "body": "As deep as a recreational diver is trained to go. Red light has already vanished, so blood looks green down here."
+    },
+    {
+      "id": "sunlight",
+      "at": 200,
+      "name": "The end of the sunlight zone",
+      "body": "Below this there is not enough light for photosynthesis anywhere on Earth. Ninety percent of marine life lives in the water above you."
+    },
+    {
+      "id": "deepest-scuba",
+      "at": 332,
+      "name": "The deepest scuba dive",
+      "body": "Ahmed Gabr, 2014. Twelve minutes to descend, and fifteen hours to come back up safely."
+    },
+    {
+      "id": "midnight",
+      "at": 1000,
+      "name": "The midnight zone",
+      "body": "No sunlight reaches here at all, ever. Almost all the light in this water is made by the animals themselves."
+    },
+    {
+      "id": "whale",
+      "at": 2992,
+      "name": "The deepest whale dive",
+      "body": "A Cuvier's beaked whale, recorded in 2014, holding its breath for two hours and seventeen minutes."
+    },
+    {
+      "id": "mean",
+      "at": 3688,
+      "name": "The average ocean depth",
+      "body": "The mean depth of the world ocean. Half the planet's surface is seafloor deeper than three kilometres."
+    },
+    {
+      "id": "titanic",
+      "at": 3800,
+      "name": "The Titanic",
+      "body": "The wreck sits here in the dark, four hundred miles off Newfoundland. Nobody found it until 1985."
+    },
+    {
+      "id": "abyssal",
+      "at": 4000,
+      "name": "The abyssal plain",
+      "body": "The flattest place on Earth. Soft sediment, near-freezing water and almost total stillness for thousands of kilometres."
+    },
+    {
+      "id": "hadal",
+      "at": 6000,
+      "name": "The hadal zone",
+      "body": "Named after Hades. Found only inside ocean trenches, which are less than one percent of the seafloor."
+    },
+    {
+      "id": "everest",
+      "at": 8849,
+      "name": "Everest, upside down",
+      "body": "If you dropped Mount Everest in here, its summit would still be two kilometres beneath you."
+    },
+    {
+      "id": "challenger",
+      "at": 10935,
+      "name": "The Challenger Deep",
+      "body": "The bottom. Eleven hundred atmospheres of pressure. Fewer people have been here than have walked on the Moon."
+    }
+  ]
+}

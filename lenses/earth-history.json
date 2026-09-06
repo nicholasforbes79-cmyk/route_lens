@@ -1,0 +1,96 @@
+{
+  "id": "earth-history",
+  "title": "The History of Earth",
+  "subtitle": "Formation to now, 4.54 billion years",
+  "unit": "million years after Earth formed",
+  "unitShort": "Ma",
+  "scale": "linear",
+  "precision": "approximate",
+  "sourceNote": "Dates from the International Commission on Stratigraphy and current radiometric consensus; the earliest ones carry real uncertainty.",
+  "domain": {
+    "from": 0,
+    "to": 4540,
+    "startLabel": "Earth forming",
+    "endLabel": "today"
+  },
+  "waypoints": [
+    {
+      "id": "moon",
+      "at": 30,
+      "name": "The Moon forms",
+      "body": "A Mars-sized body called Theia hits the young Earth. The debris becomes the Moon. All of this is over inside the first one percent of your route."
+    },
+    {
+      "id": "zircons",
+      "at": 140,
+      "name": "The oldest surviving minerals",
+      "body": "Zircon crystals from Western Australia, 4.4 billion years old. They suggest there was already liquid water."
+    },
+    {
+      "id": "rocks",
+      "at": 510,
+      "name": "The oldest known rocks",
+      "body": "The Acasta gneiss in northern Canada. Everything older has been recycled by the planet."
+    },
+    {
+      "id": "life",
+      "at": 840,
+      "name": "The first evidence of life",
+      "body": "Chemical traces in Greenland rocks, 3.7 billion years old. Life appears remarkably early and then changes very little for a very long time."
+    },
+    {
+      "id": "oxygen",
+      "at": 2140,
+      "name": "The Great Oxidation Event",
+      "body": "Cyanobacteria fill the air with oxygen and poison most of what was living. It is the largest extinction in Earth's history."
+    },
+    {
+      "id": "eukaryotes",
+      "at": 2890,
+      "name": "Complex cells",
+      "body": "One cell swallows another and keeps it. That accident becomes the mitochondria in every cell of your body."
+    },
+    {
+      "id": "snowball",
+      "at": 3820,
+      "name": "Snowball Earth",
+      "body": "Ice reaches the equator, possibly more than once. The planet is close to a total freeze."
+    },
+    {
+      "id": "animals",
+      "at": 3905,
+      "name": "The first animals",
+      "body": "The Ediacaran biota: soft, strange, mostly unlike anything alive now. You are already eighty-six percent of the way through Earth's history."
+    },
+    {
+      "id": "cambrian",
+      "at": 4001,
+      "name": "The Cambrian explosion",
+      "body": "Almost every animal body plan alive today appears within a few tens of millions of years. Eyes, shells, legs, jaws."
+    },
+    {
+      "id": "plants",
+      "at": 4070,
+      "name": "Plants move onto land",
+      "body": "The continents turn green for the first time. Before this, every landscape on Earth was bare rock."
+    },
+    {
+      "id": "permian",
+      "at": 4288,
+      "name": "The Great Dying",
+      "body": "The Permian extinction kills around ninety percent of marine species. Life takes millions of years to recover."
+    },
+    {
+      "id": "chicxulub",
+      "at": 4474,
+      "name": "The end of the dinosaurs",
+      "body": "A ten-kilometre asteroid hits the Yucatan. Non-avian dinosaurs are gone, and mammals inherit the planet."
+    },
+    {
+      "id": "sapiens",
+      "at": 4539.7,
+      "name": "Homo sapiens",
+      "body": "Our entire species fits into the last seven thousandths of one percent of the route. On a ten kilometre walk, that is the final sixty centimetres."
+    }
+  ]
+}
