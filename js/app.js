@@ -532,6 +532,14 @@ function waypointRow(w = { at: '', name: '', body: '' }) {
 const escapeHtml = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 const escapeAttr = (s) => escapeHtml(s).replace(/"/g, '&quot;');
 
+/** Editor feedback, pinned under the header where it is actually visible. */
+function editorMessage(text, isError = false) {
+  const el = $('ed-status');
+  el.hidden = !text;
+  el.textContent = text || '';
+  el.classList.toggle('is-error', !!isError);
+}
+
 function openLensEditor(lens) {
   const l = lens || blankLens();
   editor.id = l.id;
@@ -552,8 +560,7 @@ function openLensEditor(lens) {
   for (const w of l.waypoints) wrap.append(waypointRow(w));
 
   $('ed-delete').hidden = editor.isNew;
-  $('ed-status').textContent = '';
-  $('ed-status').className = 'status';
+  editorMessage('');
   $('ed-json').hidden = true;
   $('ed-load').hidden = true;
 
@@ -631,24 +638,37 @@ function renderEditorPreview() {
 
 async function saveLens() {
   const lens = readEditorLens();
-  const status = $('ed-status');
 
-  if (!lens.title) { fail('Give the lens a title.'); return; }
+  if (!lens.title) { editorMessage('Give the lens a title before saving.', true); return; }
   try {
     validateLens(lens);
   } catch (err) {
-    fail(err.message.replace(/^lens "[^"]*": /, ''));
+    editorMessage(err.message.replace(/^lens "[^"]*": /, 'Cannot save — '), true);
     return;
   }
 
-  await put('lenses', { ...lens, updatedAt: Date.now() });
-  await refreshLenses();
-  status.className = 'status is-ok';
-  status.textContent = 'Saved.';
+  try {
+    await put('lenses', { ...lens, updatedAt: Date.now() });
+    await refreshLenses();
+  } catch (err) {
+    editorMessage(`Could not save: ${err.message}`, true);
+    return;
+  }
+
   editor.isNew = false;
   $('ed-delete').hidden = false;
+  editorMessage(`Saved “${lens.title}”.`);
 
-  function fail(msg) { status.className = 'status is-error'; status.textContent = msg; }
+  // Return to the lens list, where the saved lens is now visible and
+  // selectable. Staying put with a message the user has to scroll to find is
+  // indistinguishable from the button doing nothing.
+  setTimeout(() => {
+    if (document.querySelector('.screen.is-active').id === 'screen-lens-editor') {
+      show('screen-setup');
+      const note = $('milestone-count');
+      note.textContent = `Saved “${lens.title}” — pick it below to use it.`;
+    }
+  }, 900);
 }
 
 async function deleteLens() {
@@ -1105,17 +1125,14 @@ async function boot() {
 
   $('ed-export').onclick = async () => {
     const json = JSON.stringify(readEditorLens(), null, 2);
-    const status = $('ed-status');
     try {
       await navigator.clipboard.writeText(json);
-      status.className = 'status is-ok';
-      status.textContent = 'Copied to the clipboard.';
+      editorMessage('Copied to the clipboard.');
     } catch {
       // Clipboard access needs a secure context and permission; show it instead.
       $('ed-json').hidden = false;
       $('ed-json').value = json;
-      status.className = 'status';
-      status.textContent = 'Copy it from the box below.';
+      editorMessage('Clipboard blocked — copy it from the box at the bottom.');
     }
   };
 
@@ -1127,7 +1144,6 @@ async function boot() {
   };
 
   $('ed-load').onclick = () => {
-    const status = $('ed-status');
     try {
       const parsed = JSON.parse($('ed-json').value);
       validateLens(parsed);
@@ -1136,11 +1152,9 @@ async function boot() {
       openLensEditor({ ...parsed, id: `user-${uid()}`, custom: true });
       editor.isNew = true;
       $('ed-delete').hidden = true;
-      $('ed-status').className = 'status is-ok';
-      $('ed-status').textContent = 'Loaded. Tap Save to keep it.';
+      editorMessage('Loaded. Tap Save to keep it.');
     } catch (err) {
-      status.className = 'status is-error';
-      status.textContent = `That is not a valid lens: ${err.message}`;
+      editorMessage(`That is not a valid lens: ${err.message}`, true);
     }
   };
 

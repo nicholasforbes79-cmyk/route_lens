@@ -119,6 +119,10 @@
       <button id="editor-save" class="text-btn" type="button">Save</button>
     </header>
 
+    <!-- Directly under the header, because the foot of this form is several
+         screens down and a message there is invisible when Save is pressed. -->
+    <p id="ed-status" class="editor-status" role="status" hidden></p>
+
     <div class="scroll">
       <h2>The journey</h2>
       <p class="hint">A lens maps some other journey onto your route.</p>
@@ -176,7 +180,6 @@
                 placeholder="Paste a lens here, then tap Load"></textarea>
       <button id="ed-load" class="ghost-btn" type="button" hidden>Load it</button>
 
-      <p id="ed-status" class="status"></p>
       <button id="ed-delete" class="ghost-btn is-danger" type="button" hidden>Delete this lens</button>
     </div>
   </section>
