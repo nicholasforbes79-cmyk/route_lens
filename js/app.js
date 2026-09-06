@@ -299,8 +299,18 @@ function renderPreview() {
 
 // ----------------------------------------------------------------- settings
 
+function applyTextSize() {
+  document.body.dataset.text = state.settings.largeText ? 'large' : 'normal';
+  // Leaflet caches the container size, so it needs telling when the layout moves.
+  setTimeout(() => {
+    if (map) map.invalidateSize();
+    if (journey.map) journey.map.invalidateSize();
+  }, 0);
+}
+
 function openSettings() {
   $('api-key').value = loadApiKey();
+  $('opt-large-text').checked = state.settings.largeText;
   $('opt-speech').checked = state.settings.speech;
   $('opt-vibrate').checked = state.settings.vibrate;
   $('opt-wakelock').checked = state.settings.wakeLock;
@@ -1024,6 +1034,12 @@ async function boot() {
   for (const [id, key] of [['opt-speech', 'speech'], ['opt-vibrate', 'vibrate'], ['opt-wakelock', 'wakeLock']]) {
     $(id).onchange = (e) => { state.settings = saveSettings({ [key]: e.target.checked }); };
   }
+
+  $('opt-large-text').onchange = (e) => {
+    state.settings = saveSettings({ largeText: e.target.checked });
+    applyTextSize();
+  };
+  applyTextSize();
 
   $('test-voice').onclick = async () => {
     const s = $('voice-status');

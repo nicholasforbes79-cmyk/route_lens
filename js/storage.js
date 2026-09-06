@@ -14,6 +14,7 @@ export const DEFAULT_SETTINGS = {
   vibrate: true,
   wakeLock: true,
   units: 'metric',
+  largeText: false,
   minSpacingM: null,       // null = derive from route length
 };
 

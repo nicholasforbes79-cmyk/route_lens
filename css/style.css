@@ -24,7 +24,9 @@ html, body {
   overscroll-behavior: none;          /* kills pull-to-refresh mid-journey */
 }
 
-.app { height: 100dvh; overflow: hidden; }
+/* Capped and centred so the layout stays usable on a tablet, on a desktop,
+   and if Chrome's "Desktop site" mode is left on. */
+.app { height: 100dvh; overflow: hidden; max-width: 620px; margin: 0 auto; }
 
 .screen {
   display: none;
@@ -56,7 +58,9 @@ html, body {
 .icon-btn:active { background: var(--bg-elevated); }
 
 /* -------------------------------------------------------------------- map */
-.map { flex: 1 1 auto; min-height: 0; background: #0d0d18; }
+/* The map takes what is left, but never so much that the controls get
+   squeezed — on a phone the controls are the part you have to hit. */
+.map { flex: 1 1 auto; min-height: 140px; max-height: 52%; background: #0d0d18; }
 .leaflet-container { background: #0d0d18; font: inherit; }
 .leaflet-control-attribution { background: rgba(18,18,31,.8); color: var(--text-dim); }
 .leaflet-control-attribution a { color: var(--text-dim); }
@@ -74,9 +78,9 @@ html, body {
 .endpoints { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
 .endpoint {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px;
-  min-height: 56px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px;
+  min-height: 72px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--bg-elevated);
@@ -87,13 +91,13 @@ html, body {
 }
 .endpoint.is-armed { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .endpoint-text { display: grid; min-width: 0; }
-.endpoint-text b { font-size: 13px; font-weight: 600; }
+.endpoint-text b { font-size: 16px; font-weight: 600; }
 .endpoint-text em {
-  font-style: normal; font-size: 12px; color: var(--text-dim);
+  font-style: normal; font-size: 14px; color: var(--text-dim);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-.dot { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto; }
+.dot { width: 14px; height: 14px; border-radius: 50%; flex: 0 0 auto; }
 .dot-start { background: var(--ok); }
 .dot-end { background: var(--accent-2); }
 
@@ -102,18 +106,19 @@ html, body {
 
 .primary-btn {
   width: 100%;
-  min-height: 52px;
+  min-height: 62px;
   border: 0; border-radius: 14px;
   background: var(--accent); color: #fff;
-  font: 600 17px/1 system-ui, sans-serif;
+  font: 600 19px/1 system-ui, sans-serif;
   cursor: pointer;
 }
 .primary-btn:disabled { background: var(--bg-elevated); color: var(--text-dim); }
 .primary-btn:active:not(:disabled) { transform: translateY(1px); }
 
 .ghost-btn, .select, .text-input {
-  min-height: 44px;
+  min-height: 54px;
   padding: 0 12px;
+  font-size: 16px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--bg-elevated);
@@ -123,7 +128,7 @@ html, body {
 }
 .text-input { width: 100%; cursor: text; }
 
-.status { margin: 0; font-size: 13px; color: var(--text-dim); min-height: 1.2em; }
+.status { margin: 0; font-size: 14px; color: var(--text-dim); min-height: 1.2em; }
 .status.is-error { color: var(--accent-2); }
 .status.is-ok { color: var(--ok); }
 
@@ -208,6 +213,44 @@ html, body {
   min-height: 48px; font-size: 15px; cursor: pointer;
 }
 .toggle input { width: 20px; height: 20px; accent-color: var(--accent); }
+
+/* ------------------------------------------------------------- larger text
+   An outdoor app gets read at arm's length, in sunlight, while moving. This
+   bumps the text that carries meaning and leaves structural sizes alone, so
+   nothing reflows into a broken layout. */
+body[data-text="large"] {
+  --big-scale: 1.18;
+}
+body[data-text="large"] .endpoint-text b { font-size: 18px; }
+body[data-text="large"] .endpoint-text em { font-size: 16px; }
+body[data-text="large"] .endpoint { min-height: 80px; }
+body[data-text="large"] .primary-btn { font-size: 21px; min-height: 68px; }
+body[data-text="large"] .ghost-btn,
+body[data-text="large"] .select,
+body[data-text="large"] .text-input { font-size: 18px; min-height: 58px; }
+body[data-text="large"] .bar h1 { font-size: 20px; }
+body[data-text="large"] .hint,
+body[data-text="large"] .status { font-size: 16px; }
+body[data-text="large"] .lens b { font-size: 17px; }
+body[data-text="large"] .lens span { font-size: 15px; }
+body[data-text="large"] .chip { font-size: 16px; padding: 11px 16px; }
+body[data-text="large"] .preview li { font-size: 16px; }
+body[data-text="large"] .summary b { font-size: 26px; }
+body[data-text="large"] .lens-readout { font-size: 22px; }
+body[data-text="large"] .true-readout { font-size: 15px; }
+body[data-text="large"] .next-up b { font-size: 22px; }
+body[data-text="large"] .next-distance { font-size: 18px; }
+body[data-text="large"] .stats b { font-size: 20px; }
+body[data-text="large"] .stats span { font-size: 13px; }
+body[data-text="large"] .ctl { font-size: 13px; }
+body[data-text="large"] .ctl span { font-size: 24px; }
+body[data-text="large"] .alert-card h2 { font-size: 31px; }
+body[data-text="large"] .alert-card p { font-size: 18px; }
+body[data-text="large"] .saved-main b { font-size: 17px; }
+body[data-text="large"] .saved-main span { font-size: 14px; }
+body[data-text="large"] .toggle { font-size: 17px; }
+/* The map has to give up the room this needs. */
+body[data-text="large"] .map { max-height: 44%; }
 
 /* ------------------------------------------------------ saved routes list */
 .bar-link {
