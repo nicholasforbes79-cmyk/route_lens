@@ -1,0 +1,102 @@
+{
+  "id": "mount-doom",
+  "title": "Bag End to Mount Doom",
+  "subtitle": "Frodo's walk, about 1,800 miles",
+  "unit": "miles",
+  "unitShort": "mi",
+  "scale": "linear",
+  "precision": "approximate",
+  "sourceNote": "Tolkien never published distances. These are derived from fan cartography of his maps, chiefly Karen Wynn Fonstad's Atlas of Middle-earth, and should be treated as roughly right rather than exact.",
+  "domain": {
+    "from": 0,
+    "to": 1800,
+    "startLabel": "Bag End",
+    "endLabel": "Mount Doom"
+  },
+  "waypoints": [
+    {
+      "id": "ferry",
+      "at": 40,
+      "name": "Bucklebury Ferry",
+      "body": "Out of the Shire, with a Black Rider on the far bank. Barely two percent of the way and already being hunted."
+    },
+    {
+      "id": "bree",
+      "at": 120,
+      "name": "Bree",
+      "body": "The Prancing Pony, and a ranger in the corner who turns out to be a king. The first strangers Frodo has ever really met."
+    },
+    {
+      "id": "weathertop",
+      "at": 200,
+      "name": "Weathertop",
+      "body": "Where Frodo is stabbed with a Morgul blade. He never fully recovers from this, and it is barely a tenth of the journey."
+    },
+    {
+      "id": "rivendell",
+      "at": 300,
+      "name": "Rivendell",
+      "body": "The last homely house. The Council meets, the Fellowship forms, and the Ring goes south instead of staying safe."
+    },
+    {
+      "id": "moria",
+      "at": 450,
+      "name": "The Gates of Moria",
+      "body": "Caradhras beat them, so they go under the mountain instead. Speak friend and enter."
+    },
+    {
+      "id": "lothlorien",
+      "at": 550,
+      "name": "Lothlorien",
+      "body": "Out the far side without Gandalf. Time runs strangely here, and they leave with boats, cloaks and lembas."
+    },
+    {
+      "id": "amon-hen",
+      "at": 700,
+      "name": "Amon Hen",
+      "body": "The Fellowship breaks. Boromir falls, and Frodo and Sam go on alone — a bit under forty percent of the way."
+    },
+    {
+      "id": "emyn-muil",
+      "at": 760,
+      "name": "The Emyn Muil",
+      "body": "Days lost in a maze of sharp rock, going in circles, until Gollum finally catches up with them."
+    },
+    {
+      "id": "dead-marshes",
+      "at": 850,
+      "name": "The Dead Marshes",
+      "body": "Faces in the water from a battle three thousand years old. Do not follow the lights."
+    },
+    {
+      "id": "black-gate",
+      "at": 920,
+      "name": "The Black Gate",
+      "body": "Halfway, and the front door is shut. They turn south to look for another way in."
+    },
+    {
+      "id": "ithilien",
+      "at": 1000,
+      "name": "Ithilien",
+      "body": "A green country still, and the last pleasant place either of them will see. Faramir lets them go."
+    },
+    {
+      "id": "cirith-ungol",
+      "at": 1200,
+      "name": "Cirith Ungol",
+      "body": "The stairs, the spider, and Sam carrying both the Ring and Frodo. Two thirds of the way, and the worst of it is still ahead."
+    },
+    {
+      "id": "gorgoroth",
+      "at": 1500,
+      "name": "The Plateau of Gorgoroth",
+      "body": "Ash, thirst, and orc patrols. This last stretch is short on the map and nearly kills them both."
+    },
+    {
+      "id": "doom",
+      "at": 1800,
+      "name": "Mount Doom",
+      "body": "The end. Frodo does not manage to throw it in — and that, arguably, is the whole point of the book."
+    }
+  ]
+}

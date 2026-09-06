@@ -1,12 +1,15 @@
 // app.js — bootstrap and screen wiring.
 
 import { positionAt } from './geo.js';
-import { loadBuiltinLenses, crowdingReport, domainValueAt } from './lenses.js';
+import {
+  loadBuiltinLenses, crowdingReport, domainValueAt, lensMilestones, validateLens,
+} from './lenses.js';
 import { compileMilestones, createMilestoneEngine } from './milestones.js';
 import { createTracker, formatDistance, formatDuration } from './tracker.js';
 import { directions, straightLineRoute, PROFILES, OrsError } from './route.js';
 import {
   loadSettings, saveSettings, loadApiKey, saveApiKey, requestPersistence,
+  put, del, all, uid,
 } from './storage.js';
 import {
   unlock, speak, vibrate, pickVoice, canSpeak, canVibrate, VIBRATION,
@@ -17,7 +20,8 @@ const $ = (id) => document.getElementById(id);
 
 const state = {
   settings: loadSettings(),
-  lenses: [],
+  lenses: [],           // built-ins plus the user's own
+  builtinLenses: [],
   arming: 'start',
   start: null,
   end: null,
@@ -199,14 +203,32 @@ function renderLenses() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = `lens${state.settings.lensId === lens.id ? ' is-on' : ''}`;
-    btn.innerHTML = `<b>${lens.title}</b><span>${lens.subtitle || ''}</span>`;
+    btn.innerHTML =
+      `<b>${escapeHtml(lens.title)}${lens.custom ? '<span class="badge">yours</span>' : ''}</b>` +
+      `<span>${escapeHtml(lens.subtitle || '')}</span>`;
     btn.onclick = () => {
       state.settings = saveSettings({ lensId: lens.id });
       renderLenses();
       recompile();
     };
     wrap.append(btn);
+
+    if (lens.custom) {
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'lens-edit';
+      edit.textContent = `Edit “${lens.title}”`;
+      edit.onclick = () => openLensEditor(lens);
+      wrap.append(edit);
+    }
   }
+
+  const create = document.createElement('button');
+  create.type = 'button';
+  create.className = 'ghost-btn';
+  create.textContent = '+  Write your own lens';
+  create.onclick = () => openLensEditor(null);
+  wrap.append(create);
 }
 
 function activeLens() {
@@ -283,6 +305,188 @@ function openSettings() {
   $('opt-wakelock').checked = state.settings.wakeLock;
   $('key-status').textContent = loadApiKey() ? 'A key is saved on this device.' : '';
   show('screen-settings');
+}
+
+// ------------------------------------------------------------- lens editor
+
+const editor = { id: null, isNew: true };
+
+function blankLens() {
+  return {
+    id: `user-${uid()}`,
+    title: '',
+    subtitle: '',
+    unit: '',
+    unitShort: '',
+    scale: 'linear',
+    custom: true,
+    domain: { from: 0, to: 100, startLabel: '', endLabel: '' },
+    waypoints: [{ at: 50, name: '', body: '' }],
+  };
+}
+
+function waypointRow(w = { at: '', name: '', body: '' }) {
+  const row = document.createElement('div');
+  row.className = 'wp';
+  row.innerHTML = `
+    <input class="wp-at" type="number" step="any" placeholder="0" value="${w.at ?? ''}">
+    <input class="wp-name" type="text" placeholder="What is here?" value="${escapeAttr(w.name || '')}">
+    <button class="wp-del" type="button" aria-label="Remove">&#10005;</button>
+    <textarea class="wp-body" rows="2" placeholder="Say something interesting about it">${escapeHtml(w.body || '')}</textarea>
+    <div class="wp-hint"></div>`;
+  row.querySelector('.wp-del').onclick = () => { row.remove(); renderEditorPreview(); };
+  for (const input of row.querySelectorAll('input, textarea')) {
+    input.oninput = renderEditorPreview;
+  }
+  return row;
+}
+
+const escapeHtml = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const escapeAttr = (s) => escapeHtml(s).replace(/"/g, '&quot;');
+
+function openLensEditor(lens) {
+  const l = lens || blankLens();
+  editor.id = l.id;
+  editor.isNew = !lens;
+
+  $('ed-title').value = l.title || '';
+  $('ed-subtitle').value = l.subtitle || '';
+  $('ed-unit').value = l.unit || '';
+  $('ed-unit-short').value = l.unitShort || '';
+  $('ed-from').value = l.domain.from ?? 0;
+  $('ed-to').value = l.domain.to ?? '';
+  $('ed-start-label').value = l.domain.startLabel || '';
+  $('ed-end-label').value = l.domain.endLabel || '';
+  $('ed-scale').value = l.scale || 'linear';
+
+  const wrap = $('ed-waypoints');
+  wrap.innerHTML = '';
+  for (const w of l.waypoints) wrap.append(waypointRow(w));
+
+  $('ed-delete').hidden = editor.isNew;
+  $('ed-status').textContent = '';
+  $('ed-status').className = 'status';
+  $('ed-json').hidden = true;
+  $('ed-load').hidden = true;
+
+  renderEditorPreview();
+  show('screen-lens-editor');
+}
+
+/** Read the form back into a lens object. Never throws — validation is separate. */
+function readEditorLens() {
+  const waypoints = [...$('ed-waypoints').children].map((row) => ({
+    at: parseFloat(row.querySelector('.wp-at').value),
+    name: row.querySelector('.wp-name').value.trim(),
+    body: row.querySelector('.wp-body').value.trim(),
+  })).filter((w) => w.name || Number.isFinite(w.at));
+
+  return {
+    id: editor.id,
+    custom: true,
+    title: $('ed-title').value.trim(),
+    subtitle: $('ed-subtitle').value.trim(),
+    unit: $('ed-unit').value.trim(),
+    unitShort: $('ed-unit-short').value.trim(),
+    scale: $('ed-scale').value,
+    domain: {
+      from: parseFloat($('ed-from').value) || 0,
+      to: parseFloat($('ed-to').value),
+      startLabel: $('ed-start-label').value.trim(),
+      endLabel: $('ed-end-label').value.trim(),
+    },
+    waypoints,
+  };
+}
+
+function renderEditorPreview() {
+  const lens = readEditorLens();
+  const list = $('ed-preview');
+  const note = $('ed-preview-note');
+  list.innerHTML = '';
+
+  let ms;
+  try {
+    ms = lensMilestones(lens);
+  } catch (err) {
+    note.textContent = err.message;
+    return;
+  }
+
+  // Preview against the loaded route where there is one, so the numbers are
+  // the actual distances you would walk.
+  const total = state.route ? state.route.distance : null;
+  const report = crowdingReport(lens);
+  note.textContent = total
+    ? `${ms.length} stops on your ${(total / 1000).toFixed(2)} km route.`
+    : `${ms.length} stops. Load a route to see real distances.`;
+  if (report.crowded) {
+    note.textContent += ` Bunched up — ${Math.round(report.headShare * 100)}% land in the first 5%.`;
+  }
+
+  for (const m of ms) {
+    const li = document.createElement('li');
+    const at = total
+      ? (m.fraction * total >= 1000
+        ? `${((m.fraction * total) / 1000).toFixed(2)} km`
+        : `${Math.round(m.fraction * total)} m`)
+      : `${(m.fraction * 100).toFixed(1)}%`;
+    li.innerHTML = `<span class="at">${at}</span><span>${escapeHtml(m.title)}</span>`;
+    list.append(li);
+  }
+
+  // Flag blurbs long enough to be cut off mid-sentence by the speech engine.
+  for (const row of $('ed-waypoints').children) {
+    const body = row.querySelector('.wp-body').value;
+    row.querySelector('.wp-hint').textContent =
+      body.length > 200 ? `${body.length} characters — likely to be cut off when spoken` : '';
+  }
+}
+
+async function saveLens() {
+  const lens = readEditorLens();
+  const status = $('ed-status');
+
+  if (!lens.title) { fail('Give the lens a title.'); return; }
+  try {
+    validateLens(lens);
+  } catch (err) {
+    fail(err.message.replace(/^lens "[^"]*": /, ''));
+    return;
+  }
+
+  await put('lenses', { ...lens, updatedAt: Date.now() });
+  await refreshLenses();
+  status.className = 'status is-ok';
+  status.textContent = 'Saved.';
+  editor.isNew = false;
+  $('ed-delete').hidden = false;
+
+  function fail(msg) { status.className = 'status is-error'; status.textContent = msg; }
+}
+
+async function deleteLens() {
+  await del('lenses', editor.id);
+  if (state.settings.lensId === editor.id) state.settings = saveSettings({ lensId: null });
+  await refreshLenses();
+  show('screen-setup');
+  if (state.route) recompile();
+}
+
+/** Built-ins plus anything the user has written. */
+async function refreshLenses() {
+  const custom = await all('lenses');
+  // A stored lens can be malformed — saved by an older build, or hand-edited.
+  // Skip it rather than letting one bad record take down the lens picker.
+  const usable = (custom || []).filter((l) => {
+    if (!l) return false;
+    try { validateLens(l); return true; } catch (err) {
+      console.warn(`Skipping stored lens "${l.id}": ${err.message}`);
+      return false;
+    }
+  });
+  state.lenses = [...state.builtinLenses, ...usable];
+  if (state.route) { renderLenses(); recompile(); }
 }
 
 // ------------------------------------------------------------- the journey
@@ -669,7 +873,62 @@ async function boot() {
     }
   };
 
-  state.lenses = await loadBuiltinLenses();
+  $('editor-back').onclick = () => show('screen-setup');
+  $('editor-save').onclick = saveLens;
+  $('ed-delete').onclick = deleteLens;
+  $('ed-add').onclick = () => {
+    $('ed-waypoints').append(waypointRow());
+    renderEditorPreview();
+  };
+  for (const id of ['ed-title', 'ed-subtitle', 'ed-unit', 'ed-unit-short',
+    'ed-from', 'ed-to', 'ed-start-label', 'ed-end-label', 'ed-scale']) {
+    $(id).oninput = renderEditorPreview;
+    $(id).onchange = renderEditorPreview;
+  }
+
+  $('ed-export').onclick = async () => {
+    const json = JSON.stringify(readEditorLens(), null, 2);
+    const status = $('ed-status');
+    try {
+      await navigator.clipboard.writeText(json);
+      status.className = 'status is-ok';
+      status.textContent = 'Copied to the clipboard.';
+    } catch {
+      // Clipboard access needs a secure context and permission; show it instead.
+      $('ed-json').hidden = false;
+      $('ed-json').value = json;
+      status.className = 'status';
+      status.textContent = 'Copy it from the box below.';
+    }
+  };
+
+  $('ed-import').onclick = () => {
+    $('ed-json').hidden = false;
+    $('ed-json').value = '';
+    $('ed-load').hidden = false;
+    $('ed-json').focus();
+  };
+
+  $('ed-load').onclick = () => {
+    const status = $('ed-status');
+    try {
+      const parsed = JSON.parse($('ed-json').value);
+      validateLens(parsed);
+      // Imported lenses always become a new lens of yours, so pasting one can
+      // never overwrite a built-in or silently clobber something else.
+      openLensEditor({ ...parsed, id: `user-${uid()}`, custom: true });
+      editor.isNew = true;
+      $('ed-delete').hidden = true;
+      $('ed-status').className = 'status is-ok';
+      $('ed-status').textContent = 'Loaded. Tap Save to keep it.';
+    } catch (err) {
+      status.className = 'status is-error';
+      status.textContent = `That is not a valid lens: ${err.message}`;
+    }
+  };
+
+  state.builtinLenses = await loadBuiltinLenses();
+  await refreshLenses();
   requestPersistence();
 
   // Add ?debug=1 to drive the app from the console — handy for testing a

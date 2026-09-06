@@ -89,6 +89,76 @@
     </div>
   </section>
 
+  <!-- --------------------------------------------------------- lens editor -->
+  <section id="screen-lens-editor" class="screen">
+    <header class="bar">
+      <button id="editor-back" class="icon-btn" type="button" aria-label="Back">&#8592;</button>
+      <h1>Lens editor</h1>
+      <button id="editor-save" class="text-btn" type="button">Save</button>
+    </header>
+
+    <div class="scroll">
+      <h2>The journey</h2>
+      <p class="hint">A lens maps some other journey onto your route.</p>
+
+      <label class="field"><span>Title</span>
+        <input id="ed-title" class="text-input" type="text" placeholder="The London Underground"></label>
+      <label class="field"><span>Subtitle</span>
+        <input id="ed-subtitle" class="text-input" type="text" placeholder="Amersham to Upminster"></label>
+
+      <div class="field-row">
+        <label class="field"><span>Unit, spoken</span>
+          <input id="ed-unit" class="text-input" type="text" placeholder="kilometres"></label>
+        <label class="field"><span>Unit, short</span>
+          <input id="ed-unit-short" class="text-input" type="text" placeholder="km"></label>
+      </div>
+
+      <div class="field-row">
+        <label class="field"><span>Starts at</span>
+          <input id="ed-from" class="text-input" type="number" step="any" value="0"></label>
+        <label class="field"><span>Ends at</span>
+          <input id="ed-to" class="text-input" type="number" step="any" placeholder="100"></label>
+      </div>
+
+      <div class="field-row">
+        <label class="field"><span>Start is called</span>
+          <input id="ed-start-label" class="text-input" type="text" placeholder="the start"></label>
+        <label class="field"><span>End is called</span>
+          <input id="ed-end-label" class="text-input" type="text" placeholder="the end"></label>
+      </div>
+
+      <label class="field"><span>Pacing</span>
+        <select id="ed-scale" class="select">
+          <option value="linear">Linear — true to the real distances</option>
+          <option value="power">Power — spreads out a bunched-up start</option>
+          <option value="log">Logarithmic — for huge ranges of scale</option>
+          <option value="rank">Rank — evenly spaced, ignores the numbers</option>
+        </select>
+      </label>
+
+      <h2>Waypoints</h2>
+      <p class="hint">Each one is announced as you pass it. Keep the note short — long ones get cut off mid-sentence when spoken.</p>
+      <div id="ed-waypoints" class="waypoints"></div>
+      <button id="ed-add" class="ghost-btn" type="button">Add a waypoint</button>
+
+      <h2>Preview</h2>
+      <p id="ed-preview-note" class="hint"></p>
+      <ol id="ed-preview" class="preview"></ol>
+
+      <h2>Share</h2>
+      <div class="row">
+        <button id="ed-export" class="ghost-btn" type="button">Copy as JSON</button>
+        <button id="ed-import" class="ghost-btn" type="button">Paste JSON</button>
+      </div>
+      <textarea id="ed-json" class="text-input json-box" rows="7" hidden
+                placeholder="Paste a lens here, then tap Load"></textarea>
+      <button id="ed-load" class="ghost-btn" type="button" hidden>Load it</button>
+
+      <p id="ed-status" class="status"></p>
+      <button id="ed-delete" class="ghost-btn is-danger" type="button" hidden>Delete this lens</button>
+    </div>
+  </section>
+
   <!-- ------------------------------------------------------- live journey -->
   <section id="screen-journey" class="screen">
     <div id="ribbon" class="ribbon"><div id="ribbon-fill" class="ribbon-fill"></div></div>

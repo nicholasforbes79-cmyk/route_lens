@@ -4,13 +4,16 @@
 
 import { clamp } from './geo.js';
 
-// Still to write: blood-cell, mount-doom, atmosphere, apollo-11.
 export const BUILTIN_LENS_IDS = [
   'solar-system',
   'hydrogen-atom',
+  'blood-cell',
   'ocean-depth',
   'earth-history',
+  'atmosphere',
   'everest',
+  'apollo-11',
+  'mount-doom',
   'marathon',
 ];
 
@@ -21,10 +24,12 @@ export function validateLens(lens) {
   if (!lens || typeof lens !== 'object') fail('not an object');
   if (!lens.id) fail('missing id');
   if (!lens.title) fail('missing title');
-  if (!lens.domain || typeof lens.domain.from !== 'number' || typeof lens.domain.to !== 'number') {
-    fail('domain must be { from: number, to: number }');
+  // Number.isFinite, not typeof: an empty number field parses to NaN, which is
+  // of type "number" and slips past every comparison below without complaint.
+  if (!lens.domain || !Number.isFinite(lens.domain.from) || !Number.isFinite(lens.domain.to)) {
+    fail('needs a start and end value for the journey it maps onto');
   }
-  if (lens.domain.to <= lens.domain.from) fail('domain.to must be greater than domain.from');
+  if (lens.domain.to <= lens.domain.from) fail('the end value must be greater than the start value');
 
   const scale = lens.scale || 'linear';
   if (!SCALES.includes(scale)) fail(`unknown scale "${scale}"`);

@@ -1,0 +1,84 @@
+{
+  "id": "atmosphere",
+  "title": "Straight Up",
+  "subtitle": "Sea level to the edge of space",
+  "unit": "kilometres up",
+  "unitShort": "km",
+  "scale": "linear",
+  "precision": "exact",
+  "sourceNote": "The Karman line at 100 km is the FAI's conventional boundary of space, not a physical edge — the atmosphere just keeps thinning.",
+  "domain": {
+    "from": 0,
+    "to": 100,
+    "startLabel": "sea level",
+    "endLabel": "the edge of space"
+  },
+  "waypoints": [
+    {
+      "id": "burj",
+      "at": 0.828,
+      "name": "The top of the tallest building",
+      "body": "The Burj Khalifa, 828 metres. The tallest thing humans have ever built, and you are not even one percent of the way up."
+    },
+    {
+      "id": "altitude-sickness",
+      "at": 2.5,
+      "name": "Where altitude sickness starts",
+      "body": "Above about 2,500 metres the thinner air starts to affect most people. Roughly two percent of the way to space."
+    },
+    {
+      "id": "half-mass",
+      "at": 5.5,
+      "name": "Half the atmosphere is below you",
+      "body": "Half of all the air on Earth, by mass, is now beneath your feet. You are five percent of the way to the edge."
+    },
+    {
+      "id": "everest",
+      "at": 8.849,
+      "name": "The summit of Everest",
+      "body": "The highest anyone stands without a machine. A third of the oxygen of sea level, and still under nine percent of the way up."
+    },
+    {
+      "id": "cruising",
+      "at": 11,
+      "name": "Cruising altitude",
+      "body": "Where airliners fly, just below the tropopause. Outside it is around minus fifty-five degrees."
+    },
+    {
+      "id": "armstrong",
+      "at": 19,
+      "name": "The Armstrong limit",
+      "body": "Above this the pressure is so low that the water in your body boils at its own temperature. A pressure suit stops being optional."
+    },
+    {
+      "id": "ozone",
+      "at": 25,
+      "name": "The ozone layer",
+      "body": "A thin band of gas absorbing most of the Sun's ultraviolet. Compressed to sea-level pressure it would be about three millimetres thick."
+    },
+    {
+      "id": "baumgartner",
+      "at": 38.97,
+      "name": "The highest skydive",
+      "body": "Felix Baumgartner stepped off a balloon here in 2012 and fell for four minutes, breaking the sound barrier on the way down."
+    },
+    {
+      "id": "stratopause",
+      "at": 50,
+      "name": "The stratopause",
+      "body": "Halfway. The top of the stratosphere, where the air stops warming with height and starts cooling again."
+    },
+    {
+      "id": "mesopause",
+      "at": 85,
+      "name": "The mesopause",
+      "body": "About minus ninety degrees, the coldest place anywhere on Earth. Noctilucent clouds form here, made of ice on meteor dust."
+    },
+    {
+      "id": "karman",
+      "at": 100,
+      "name": "The Karman line",
+      "body": "Officially space. The air is still there, just far too thin to fly in — from here you have to orbit instead."
+    }
+  ]
+}

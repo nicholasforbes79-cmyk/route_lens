@@ -1,0 +1,90 @@
+{
+  "id": "blood-cell",
+  "title": "A Red Blood Cell",
+  "subtitle": "One complete circuit of the body",
+  "unit": "seconds",
+  "unitShort": "s",
+  "scale": "linear",
+  "precision": "approximate",
+  "sourceNote": "A complete circulation takes roughly a minute at rest. The timings of individual stages are illustrative — the anatomy is real, the second-by-second split is not precisely measurable.",
+  "domain": {
+    "from": 0,
+    "to": 60,
+    "startLabel": "the left ventricle",
+    "endLabel": "back to the heart"
+  },
+  "waypoints": [
+    {
+      "id": "aorta",
+      "at": 1,
+      "name": "The aortic arch",
+      "body": "You have just been fired out of the left ventricle at about forty centimetres per second. This is the fastest you will move all trip."
+    },
+    {
+      "id": "descending",
+      "at": 4,
+      "name": "The descending aorta",
+      "body": "Heading down through the chest in a vessel about as wide as a garden hose, with the whole body still ahead of you."
+    },
+    {
+      "id": "arteriole",
+      "at": 9,
+      "name": "Into an arteriole",
+      "body": "The branching has begun. Each split makes the vessel narrower and the flow slower, which is exactly the point."
+    },
+    {
+      "id": "capillary",
+      "at": 13,
+      "name": "A capillary",
+      "body": "You are now in a tube narrower than you are. Red blood cells fold into a bullet shape to squeeze through, single file."
+    },
+    {
+      "id": "unload",
+      "at": 15,
+      "name": "Oxygen unloaded",
+      "body": "The whole reason for the trip, and it takes under a second. Tissue takes the oxygen, you take away carbon dioxide."
+    },
+    {
+      "id": "venule",
+      "at": 21,
+      "name": "Into a venule",
+      "body": "The return journey begins. Veins are wider and lower pressure, so most of your minute is spent on this half."
+    },
+    {
+      "id": "vena-cava",
+      "at": 34,
+      "name": "The vena cava",
+      "body": "The body's largest vein, carrying you back towards the heart. Valves and the squeeze of your muscles do much of the work."
+    },
+    {
+      "id": "right-heart",
+      "at": 39,
+      "name": "The right side of the heart",
+      "body": "Through the right atrium and into the right ventricle. Note that you have not been to the lungs yet — that comes next."
+    },
+    {
+      "id": "pulmonary",
+      "at": 43,
+      "name": "The pulmonary artery",
+      "body": "The only artery in the body carrying oxygen-poor blood, heading for the lungs."
+    },
+    {
+      "id": "alveoli",
+      "at": 47,
+      "name": "The alveoli",
+      "body": "Oxygen reloaded in about three quarters of a second, across a membrane less than a thousandth of a millimetre thick."
+    },
+    {
+      "id": "pulmonary-vein",
+      "at": 54,
+      "name": "The pulmonary vein",
+      "body": "Back towards the heart, bright red again, in the only vein that carries oxygen-rich blood."
+    },
+    {
+      "id": "home",
+      "at": 60,
+      "name": "The left ventricle again",
+      "body": "One full circuit. You will do this about fourteen hundred times a day, for a hundred and twenty days, covering roughly five hundred kilometres before you are recycled."
+    }
+  ]
+}

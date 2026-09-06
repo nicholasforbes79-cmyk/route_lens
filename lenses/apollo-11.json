@@ -1,0 +1,60 @@
+{
+  "id": "apollo-11",
+  "title": "Earth to the Moon",
+  "subtitle": "The coast of Apollo 11",
+  "unit": "kilometres from Earth",
+  "unitShort": "km",
+  "scale": "linear",
+  "precision": "exact",
+  "sourceNote": "384,400 km is the mean Earth-Moon distance; the orbit is elliptical, so the real figure varies by about 10%.",
+  "domain": {
+    "from": 0,
+    "to": 384400,
+    "startLabel": "Earth",
+    "endLabel": "the Moon"
+  },
+  "waypoints": [
+    {
+      "id": "leo",
+      "at": 185,
+      "name": "Low Earth orbit",
+      "body": "Parking orbit, and where the Space Station still is today. Getting this far took most of the fuel — and it is under a twentieth of one percent of the trip."
+    },
+    {
+      "id": "tli",
+      "at": 2000,
+      "name": "Translunar injection",
+      "body": "The third stage burns for six minutes and the spacecraft stops circling Earth and starts falling towards the Moon."
+    },
+    {
+      "id": "geo",
+      "at": 35786,
+      "name": "Geostationary orbit",
+      "body": "Where television and weather satellites sit, matching Earth's spin so they hang over one spot. Nine percent of the way."
+    },
+    {
+      "id": "blue-marble",
+      "at": 100000,
+      "name": "The whole Earth in one frame",
+      "body": "Far enough that the planet fits in a window. Apollo 11 passed here about ten hours after leaving orbit."
+    },
+    {
+      "id": "halfway",
+      "at": 192200,
+      "name": "Halfway",
+      "body": "Still coasting, still slowing down — the ship is climbing out of Earth's gravity the whole way and is at its slowest near the end."
+    },
+    {
+      "id": "neutral",
+      "at": 346000,
+      "name": "The point of no return",
+      "body": "Ninety percent out, and the Moon's gravity now pulls harder than Earth's. From here you are falling towards the Moon, not away from home."
+    },
+    {
+      "id": "moon",
+      "at": 384400,
+      "name": "The Moon",
+      "body": "Three days and about seventy-six hours after launch. Radio signals from here take one and a quarter seconds to reach Earth."
+    }
+  ]
+}

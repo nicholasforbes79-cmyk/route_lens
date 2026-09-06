@@ -318,10 +318,22 @@ group('lenses');
   near(ranked[0].fraction, 1 / 7, 1e-9, 'and puts nothing at fraction zero, where it would be skipped');
   near(ranked[6].fraction, 1, 1e-9, 'with the last waypoint at the end');
 
-  let bad = false;
-  try { validateLens({ id: 'x', title: 'x', domain: { from: 10, to: 1 }, waypoints: [{ at: 1, name: 'a' }] }); }
-  catch { bad = true; }
-  ok(bad, 'rejects a domain that runs backwards');
+  const rejects = (lens, why) => {
+    let threw = false;
+    try { validateLens(lens); } catch { threw = true; }
+    record(threw, why);
+  };
+  const base = { id: 'x', title: 'x', waypoints: [{ at: 1, name: 'a' }] };
+  rejects({ ...base, domain: { from: 10, to: 1 } }, 'rejects a domain that runs backwards');
+  // An empty number field parses to NaN, whose typeof is "number" — the check
+  // has to be Number.isFinite or a broken lens saves silently.
+  rejects({ ...base, domain: { from: 0, to: NaN } }, 'rejects a NaN domain end (an empty form field)');
+  rejects({ ...base, domain: { from: NaN, to: 10 } }, 'rejects a NaN domain start');
+  rejects({ ...base, domain: { from: 0, to: 10 }, waypoints: [] }, 'rejects a lens with no waypoints');
+  rejects({ ...base, domain: { from: 0, to: 10 }, waypoints: [{ at: 5 }] }, 'rejects a nameless waypoint');
+  rejects({ ...base, domain: { from: 0, to: 10 }, waypoints: [{ at: 'x', name: 'a' }] },
+          'rejects a non-numeric waypoint position');
+  rejects({ ...base, domain: { from: 0, to: 10 }, scale: 'wat' }, 'rejects an unknown scale');
 }
 
 // -------------------------------------------------------------- fractions
