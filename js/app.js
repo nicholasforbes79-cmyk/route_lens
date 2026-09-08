@@ -865,6 +865,20 @@ function showAlert(event) {
   }
 }
 
+/**
+ * Live GPS accuracy. Worth showing permanently rather than only when it goes
+ * wrong: it is the single most useful number for telling "the app is broken"
+ * apart from "your phone cannot see the sky".
+ */
+function showGpsAccuracy(metres) {
+  const el = $('stat-gps');
+  if (!Number.isFinite(metres) || metres <= 0) { el.textContent = '–'; return; }
+  const m = Math.round(metres);
+  el.textContent = `±${m} m`;
+  el.classList.toggle('is-weak', m > 15 && m <= 30);
+  el.classList.toggle('is-bad', m > 30);          // above this, fixes are dropped
+}
+
 function setBanner(text, bad) {
   const el = $('journey-banner');
   el.hidden = !text;
@@ -896,6 +910,7 @@ function renderJourney(fix) {
     $('true-readout').textContent = '';
   }
 
+  showGpsAccuracy(fix.accuracy);
   $('stat-done').textContent = formatDistance(fix.along);
   $('stat-left').textContent = formatDistance(Math.max(0, total - fix.along));
   $('stat-time').textContent = formatDuration(fix.elapsedMs);
@@ -984,7 +999,15 @@ async function startJourney() {
 
   journey.tracker = createTracker(state.route.geometry, {
     onFix: (fix) => {
-      if (!fix.accepted && fix.reason === 'accuracy') return;
+      // A fix too vague to trust is discarded, but saying nothing looks
+      // identical to the app having died — which matters most exactly where
+      // accuracy is worst, next to tall buildings.
+      if (!fix.accepted && fix.reason === 'accuracy') {
+        showGpsAccuracy(fix.accuracy);
+        setBanner(`Weak GPS signal — accurate to about ${Math.round(fix.accuracy)} m. `
+          + 'Progress is paused until a better fix arrives.');
+        return;
+      }
       renderJourney(fix);
       if (fix.offRoute) return;                 // no alerts while off the line
       const event = journey.engine.update(fix.along, { confident: fix.confident });

@@ -442,12 +442,14 @@ body[data-text="large"] .map { min-height: 120px; }
 
 .stats {
   flex: 0 0 auto;
-  display: grid; grid-template-columns: repeat(3, 1fr);
+  display: grid; grid-template-columns: repeat(4, 1fr);
   padding: 10px 16px;
   border-top: 1px solid var(--border);
   text-align: center;
 }
 .stats b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; }
+.stats b.is-weak { color: var(--warn); }
+.stats b.is-bad { color: var(--accent-2); }
 .stats span { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; }
 
 .controls {
