@@ -1,6 +1,6 @@
 // app.js — bootstrap and screen wiring.
 
-import { positionAt, buildRoute } from './geo.js';
+import { positionAt, buildRoute, haversine } from './geo.js';
 import {
   loadBuiltinLenses, crowdingReport, crowdingMessage, domainValueAt,
   lensMilestones, validateLens,
@@ -26,6 +26,8 @@ const state = {
   arming: 'start',
   start: null,
   end: null,
+  via: [],            // points along the way — what makes a loop measurable
+  viaMarkers: [],
   route: null,
   milestones: [],
   markers: { start: null, end: null },
@@ -52,7 +54,43 @@ function initMap() {
   }).addTo(map);
   L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-  map.on('click', (e) => setPoint(state.arming, { lat: e.latlng.lat, lng: e.latlng.lng }));
+  map.on('click', (e) => {
+    const point = { lat: e.latlng.lat, lng: e.latlng.lng };
+    if (state.arming === 'via') addVia(point);
+    else setPoint(state.arming, point);
+  });
+}
+
+function addVia(point) {
+  state.via.push(point);
+  const marker = L.marker([point.lat, point.lng], {
+    icon: L.divIcon({
+      className: '',
+      html: `<div class="via-pin">${state.via.length}</div>`,
+      iconSize: [22, 22],
+    }),
+  }).addTo(map);
+  state.viaMarkers.push(marker);
+  renderViaControls();
+}
+
+function clearVia() {
+  for (const m of state.viaMarkers) map.removeLayer(m);
+  state.viaMarkers = [];
+  state.via = [];
+  if (state.arming === 'via') arm('start');
+  renderViaControls();
+}
+
+function renderViaControls() {
+  const n = state.via.length;
+  const add = $('add-via');
+  add.textContent = n
+    ? `+ Point along the way (${n})`
+    : '+ Point along the way';
+  add.classList.toggle('is-armed', state.arming === 'via');
+  $('clear-via').hidden = n === 0;
+  refreshPlanButton();
 }
 
 function setPoint(role, point) {
@@ -75,6 +113,7 @@ function arm(role) {
   state.arming = role;
   $('pick-start').classList.toggle('is-armed', role === 'start');
   $('pick-end').classList.toggle('is-armed', role === 'end');
+  $('add-via').classList.toggle('is-armed', role === 'via');
 }
 
 function refreshPlanButton() {
@@ -124,12 +163,33 @@ async function fetchRoute() {
 
   const profile = $('profile').value;
   try {
+    // Check before building anything: a start and end in the same place makes
+    // the geometry collapse, and that failure surfaces as an internal message
+    // that tells the user nothing about what to do instead.
+    if (!state.via.length && haversine(
+      state.start.lat, state.start.lng, state.end.lat, state.end.lng) < 25) {
+      throw new OrsError('bad',
+        'Start and end are in the same place, so there is no route to measure. '
+        + 'Walking a loop? Tap “+ Point along the way” and trace it on the map first.');
+    }
+
+    const legs = { start: state.start, end: state.end, via: state.via };
     let route;
     if (loadApiKey()) {
-      route = await directions({ start: state.start, end: state.end, profile });
+      route = await directions({ ...legs, profile });
     } else {
-      route = straightLineRoute({ start: state.start, end: state.end });
-      status.textContent = 'No API key — using a straight line. Add a key in Settings for a real route.';
+      route = straightLineRoute(legs);
+      status.textContent = 'No API key — using straight lines. Add a key in Settings for real paths.';
+    }
+
+    // A loop with no points in between is indistinguishable from standing
+    // still, and the raw geometry error for that case explains nothing.
+    if (route.distance < 50) {
+      throw new OrsError('bad',
+        state.via.length
+          ? `That route is only ${Math.round(route.distance)} m long. Move the points further apart.`
+          : 'Start and end are in the same place, so there is no route to measure. '
+            + 'If you are walking a loop, add a point or two along the way first.');
     }
     state.route = route;
     drawRoute(route);
@@ -323,10 +383,16 @@ function openSettings() {
 
 const shortDate = (t) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
-/** Two routes count as the same if their endpoints and mode match. */
+const coordKey = (p) => `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`;
+
+/**
+ * Two routes count as the same if their mode and every point match. The points
+ * along the way have to be included: on a loop the start and end are identical,
+ * so keying on those alone would make every different lap from the same corner
+ * overwrite the last one.
+ */
 const routeKey = (r) =>
-  `${r.profile}:${r.start.lat.toFixed(4)},${r.start.lng.toFixed(4)}` +
-  `>${r.end.lat.toFixed(4)},${r.end.lng.toFixed(4)}`;
+  [r.profile, coordKey(r.start), ...(r.via || []).map(coordKey), coordKey(r.end)].join('>');
 
 function defaultRouteName(route) {
   const km = `${(route.distance / 1000).toFixed(2)} km`;
@@ -351,6 +417,7 @@ async function rememberRoute(route) {
     profile: route.profile,
     start: route.start,
     end: route.end,
+    via: route.via || [],
     // Store the raw coordinates, not the cumulative table — rebuilding it takes
     // a few milliseconds and cannot then drift out of sync with the geometry.
     coordinates: route.coordinates,
@@ -372,16 +439,17 @@ function loadSavedRoute(record) {
     profile: record.profile,
     start: record.start,
     end: record.end,
+    via: record.via || [],
     distance: record.distance,
     duration: record.duration,
     approximate: record.approximate,
     savedId: record.id,
   };
   state.route = route;
-  state.start = record.start;
-  state.end = record.end;
+  clearVia();
   setPoint('start', record.start);
   setPoint('end', record.end);
+  for (const p of record.via || []) addVia(p);
   drawRoute(route);
   $('profile').value = record.profile === 'straight-line' ? state.settings.profile : record.profile;
   openSetup();
@@ -1038,6 +1106,15 @@ async function boot() {
 
   $('pick-start').onclick = () => arm('start');
   $('pick-end').onclick = () => arm('end');
+  $('add-via').onclick = () => {
+    arm(state.arming === 'via' ? 'start' : 'via');
+    renderViaControls();
+    $('plan-status').className = 'status';
+    $('plan-status').textContent = state.arming === 'via'
+      ? 'Tap the map to trace your route. Keep tapping to add more points.'
+      : '';
+  };
+  $('clear-via').onclick = clearVia;
   $('get-route').onclick = fetchRoute;
   $('open-settings').onclick = openSettings;
   $('settings-back').onclick = () => show('screen-plan');

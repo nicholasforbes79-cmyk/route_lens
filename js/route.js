@@ -50,9 +50,15 @@ function mapError(status, body) {
  * Note the endpoint: /geojson. Without that suffix ORS returns an *encoded
  * polyline string*, not a LineString, which fails in a confusing place.
  */
-export async function directions({ start, end, profile = 'foot-walking', signal }) {
+export async function directions({ start, end, via = [], profile = 'foot-walking', signal }) {
   const key = loadApiKey();
   if (!key) throw new OrsError('auth', 'No OpenRouteService API key set. Add one in Settings.');
+
+  // Start, any points along the way, then end. A loop is start and end at the
+  // same place with at least one point in between — without that, there is
+  // nothing to distinguish it from standing still.
+  const points = [start, ...via, end];
+  if (points.length > 50) throw new OrsError('bad', 'Too many points — 50 is the limit.');
 
   await throttle();
   let res;
@@ -66,7 +72,7 @@ export async function directions({ start, end, profile = 'foot-walking', signal 
         Accept: 'application/geo+json',
       },
       body: JSON.stringify({
-        coordinates: [[start.lng, start.lat], [end.lng, end.lat]],
+        coordinates: points.map((p) => [p.lng, p.lat]),
         instructions: false,
       }),
     });
@@ -92,6 +98,7 @@ export async function directions({ start, end, profile = 'foot-walking', signal 
     profile,
     start,
     end,
+    via,
     // Our own total is authoritative for every fraction calculation. ORS sums
     // on a slightly different model and differs by a few tenths of a percent,
     // which would otherwise make the 100% milestone fire at 99.6%.
@@ -127,14 +134,26 @@ export async function geocode(text, { near = null, size = 6, signal } = {}) {
   }));
 }
 
-/** A straight line between two points, so the app is usable with no API key. */
-export function straightLineRoute({ start, end }) {
-  const steps = 64;
+/**
+ * Straight lines between the points, so the app is usable with no API key.
+ * With points in between it traces those legs, which is what makes a loop
+ * measurable rather than collapsing to nothing.
+ */
+export function straightLineRoute({ start, end, via = [] }) {
+  const points = [start, ...via, end];
+  const perLeg = Math.max(8, Math.round(96 / (points.length - 1)));
   const coords = [];
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
-    coords.push([start.lng + (end.lng - start.lng) * t, start.lat + (end.lat - start.lat) * t]);
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i];
+    const b = points[i + 1];
+    for (let s = 0; s < perLeg; s++) {
+      const t = s / perLeg;
+      coords.push([a.lng + (b.lng - a.lng) * t, a.lat + (b.lat - a.lat) * t]);
+    }
   }
+  coords.push([end.lng, end.lat]);
+
   const geometry = buildRoute(coords);
   return {
     geometry,
@@ -142,6 +161,7 @@ export function straightLineRoute({ start, end }) {
     profile: 'straight-line',
     start,
     end,
+    via,
     distance: geometry.total,
     orsDistance: null,
     duration: null,

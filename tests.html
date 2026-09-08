@@ -218,6 +218,33 @@ group('snapper: self-crossing routes with noise');
   record(Math.abs(f8.end - f8.total) < 40, 'and completes the full loop',
          `ended at ${f8.end.toFixed(1)} of ${f8.total.toFixed(1)} m`);
 
+  // A closed loop — walking a perimeter back to where you started. The finish
+  // is 0 m from the start in space but a full lap away along the route, which
+  // is the same ambiguity as an out-and-back and the main real-world use.
+  const perimeter = [];
+  const corner = [[0, 0], [220, 0], [220, 140], [0, 140], [0, 0]];
+  for (let i = 0; i < corner.length - 1; i++) {
+    const [ax, ay] = corner[i];
+    const [bx, by] = corner[i + 1];
+    for (let s = 0; s < 12; s++) {
+      const t = s / 12;
+      const o = offsetMetres(51.5, -0.12, ax + (bx - ax) * t, ay + (by - ay) * t);
+      perimeter.push([o.lng, o.lat]);
+    }
+  }
+  perimeter.push(perimeter[0]);
+
+  const loopR = buildRoute(perimeter);
+  near(loopR.total, 720, 5, 'a 220x140 m perimeter loop measures 720 m');
+  for (const noise of [5, 12]) {
+    const walk = track(perimeter, { speedMps: 1.3, noiseM: noise, seed: 11 });
+    record(Math.abs(walk.end - walk.total) < 40,
+           `a full lap finishes at the end, not back at the start (${noise} m noise)`,
+           `ended at ${walk.end.toFixed(1)} of ${walk.total.toFixed(1)} m`);
+    record(walk.worst < 80, `and never jumps across the loop (${noise} m noise)`,
+           `worst error ${walk.worst.toFixed(1)} m`);
+  }
+
   // Cycling: faster, sparser fixes, so the forward window has to widen.
   const bike = track(outBack, { speedMps: 5, intervalS: 2, noiseM: 10, seed: 9 });
   record(Math.abs(bike.end - bike.total) < 60, 'holds up at cycling speed with 2 s fixes',
