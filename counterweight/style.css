@@ -1,0 +1,31 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #241d1a; color: #f3ece4;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+#game { display: block; width: 100vw; height: 100vh; cursor: crosshair; }
+.overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(20, 15, 12, 0.72); }
+.overlay.hidden { display: none; }
+.overlay.light { background: rgba(20, 15, 12, 0.35); }
+.card { width: min(640px, 92vw); max-height: 92vh; overflow: auto; padding: 28px 32px; border-radius: 14px;
+  background: #33291f; border: 1px solid #5a4a3a; box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5); }
+.card h1 { margin: 0 0 6px; font-size: 30px; letter-spacing: 0.04em; }
+.card h2 { margin: 18px 0 6px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: #c9b8a4; }
+.card p { margin: 8px 0; line-height: 1.45; }
+.card ul { margin: 6px 0; padding-left: 20px; line-height: 1.5; }
+.card .sub { color: #c9b8a4; }
+.amber { color: #f2a93b; font-weight: 600; }
+.teal { color: #2ec4b6; font-weight: 600; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+kbd { display: inline-block; padding: 1px 6px; border-radius: 4px; background: #1f1813; border: 1px solid #5a4a3a;
+  font: 12px ui-monospace, Menlo, Consolas, monospace; }
+.buttons { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+button { padding: 10px 18px; border-radius: 8px; border: 1px solid #7a644c; background: #f2a93b; color: #241d1a;
+  font: 600 15px system-ui, sans-serif; cursor: pointer; }
+button.alt { background: #2ec4b6; }
+button.plain { background: #4a3c2e; color: #f3ece4; }
+button:hover { filter: brightness(1.1); }
+table.scores { width: 100%; border-collapse: collapse; margin: 10px 0; }
+table.scores th, table.scores td { padding: 6px 10px; text-align: right; border-bottom: 1px solid #4a3c2e; }
+table.scores th:first-child, table.scores td:first-child { text-align: left; }
+.blame { padding: 10px 12px; border-radius: 8px; background: #241d1a; border-left: 4px solid #e0564a; }
+@media (max-width: 560px) { .cols { grid-template-columns: 1fr; } }

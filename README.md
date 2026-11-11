@@ -98,3 +98,8 @@ simulated journey through the live screen without moving.
   before it settles. This is inherent, not a bug, and it self-corrects.
 - Tiles come from OpenStreetMap's public servers, which is fine for personal
   use but not for anything heavier.
+
+## Also in this repository
+
+[`counterweight/`](counterweight/) holds a prototype of an unrelated game, a
+Jenga × Tetris hybrid. It shares no code with Route Lens. See its README.
