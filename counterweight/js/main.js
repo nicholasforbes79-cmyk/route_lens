@@ -1,198 +1,287 @@
-// Counterweight prototype: boot, input and the frame loop.
+// Counterweight, turn-based 3D: boot, input, on-screen prompts, frame loop.
 
-import RAPIER from '../vendor/rapier2d-compat.mjs';
-import { Game } from './sim.js';
-import { Renderer } from './render.js';
+import RAPIER from '../vendor/rapier3d-compat.mjs';
+import { Game } from './game.js';
+import { View } from './view.js';
+import { TIER_NAMES } from './config.js';
 
-const canvas = document.getElementById('game');
-const overlay = document.getElementById('overlay');
+const $ = (id) => document.getElementById(id);
+const canvas = $('view');
+const overlay = $('overlay');
 
 await RAPIER.init();
 
-// Optional overrides for playtesting, e.g. ?phase=15&cap=90&seed=3
+// Playtest overrides, e.g. ?rounds=6&seed=3
 const params = new URLSearchParams(location.search);
 const config = {};
-if (params.has('phase')) config.phaseSeconds = Number(params.get('phase'));
-if (params.has('cap')) config.towerCapSeconds = Number(params.get('cap'));
-const game = new Game(RAPIER, {
-  config,
-  seed: params.has('seed') ? Number(params.get('seed')) : undefined,
-});
-const view = new Renderer(canvas, game);
+if (params.has('rounds')) config.roundsPerTower = Number(params.get('rounds'));
+if (params.has('towers')) config.towers = Number(params.get('towers'));
+const game = new Game(RAPIER, { config, seed: params.has('seed') ? Number(params.get('seed')) : undefined });
+const view = new View(canvas, game);
 window.__cw = { game, view };
 
-let paused = false;
-let shownState = null;
+let shown = null; // which state the prompt and overlay were last drawn for
+let helpOpen = false;
+const log = [];
 
 // ------------------------------------------------------------------ overlays
 
-function show(html, light = false) {
+const RULES = `
+  <ul>
+    <li>Two players share one tower and take turns. You only need a mouse.</li>
+    <li>The <span class="drop">Dropper</span> places the piece the hand is holding on top of the tower.</li>
+    <li>Then the <span class="pull">Puller</span> slides one block out of the tower.</li>
+    <li>That is one round. Every 3 rounds the two of you swap roles.</li>
+    <li>Knock the tower down on your move and you lose 10 points.</li>
+    <li>Most points after 3 towers wins.</li>
+  </ul>
+  <h2>Points</h2>
+  <ul>
+    <li><span class="drop">Dropper:</span> 1 point per square of the piece, +3 for finishing a layer.</li>
+    <li><span class="pull">Puller:</span> 1, 2 or 4 points. The more weight the block was carrying, the more it is worth.</li>
+    <li>Blocks you knock off the tower cost 2 points each.</li>
+  </ul>`;
+
+function card(html) {
   overlay.innerHTML = `<div class="card">${html}</div>`;
-  overlay.className = `overlay${light ? ' light' : ''}`;
+  overlay.classList.remove('hidden');
 }
-function hide() { overlay.className = 'overlay hidden'; }
+function closeCard() { overlay.classList.add('hidden'); helpOpen = false; }
 
 function showMenu() {
-  show(`
-    <h1>Counterweight</h1>
-    <p class="sub">Prototype · two players, one tower, one keyboard and one mouse</p>
-    <p>One player <span class="amber">drops</span> pieces onto the top of the tower. The other
-      <span class="teal">pulls</span> blocks out of the bottom half. Roles swap every 60 seconds:
-      trade the keyboard and the mouse. When the tower falls, whoever caused it pays.</p>
-    <div class="cols">
-      <div>
-        <h2 class="amber">Dropper · keyboard</h2>
-        <ul>
-          <li><kbd>A</kbd> <kbd>D</kbd> move, <kbd>W</kbd> <kbd>Q</kbd> rotate</li>
-          <li><kbd>S</kbd> soft drop, <kbd>Space</kbd> hard drop</li>
-          <li><kbd>E</kbd> hold</li>
-          <li>Fill a whole row and it fuses: +50</li>
-        </ul>
-      </div>
-      <div>
-        <h2 class="teal">Puller · mouse</h2>
-        <ul>
-          <li>Drag a block sideways to slide it out</li>
-          <li>Pull slowly; a fast yank shakes the tower</li>
-          <li>Right-click a block to test its load</li>
-          <li>Red blocks carry the most and score ×8</li>
-        </ul>
-      </div>
-    </div>
-    <p class="sub">Best of 5 towers. A collapse costs 150 points, split by blame. P1 starts as Dropper.</p>
-    <div class="buttons"><button id="start">Start match (Enter)</button></div>`);
-  document.getElementById('start').onclick = startMatch;
+  card(`<h1>Counterweight</h1>
+    <p>Build it up. Pull it apart. Don't be the one who knocks it down.</p>
+    ${RULES}
+    <div class="buttons"><button id="go">Start game</button>
+      <a href="realtime2d/">Older real-time 2D version</a></div>`);
+  $('go').onclick = () => { game.startGame(); };
 }
 
-function blameHtml(r) {
-  if (r.reason === 'cap') return '<p class="blame" style="border-color:#59b96b">The tower survived the full six minutes. +100 each.</p>';
-  const b = r.blame;
-  const line = (p) => {
-    if (!b.pct[p]) return '';
-    const a = b.top[p];
-    const what = a ? ` (${a.label} at ${Math.floor(a.t / 60)}:${String(Math.floor(a.t % 60)).padStart(2, '0')})` : '';
-    return `<strong>${b.pct[p]}% P${p + 1}</strong>${what}`;
-  };
-  const parts = [0, 1].sort((x, y) => b.pct[y] - b.pct[x]).map(line).filter(Boolean);
-  const hot = b.protect ? '<br><span class="sub">Hot potato: moves made right after the swap were not counted.</span>' : '';
-  return `<p class="blame">Collapse at ${r.rows} rows. Blame: ${parts.join(', ')}.${hot}</p>`;
+function showHelp() {
+  helpOpen = true;
+  card(`<h1>How to play</h1>${RULES}
+    <h2>Controls</h2>
+    <ul>
+      <li><strong>Look around:</strong> drag with the mouse. Scroll to zoom.</li>
+      <li><strong>Dropper:</strong> move the mouse over the tower to aim, press R or right-click to turn the piece, click to drop.</li>
+      <li><strong>Puller:</strong> click a coloured block to choose it, then click it again to pull.</li>
+    </ul>
+    <div class="buttons"><button id="closeHelp" class="plain">Back to the game</button></div>`);
+  $('closeHelp').onclick = closeCard;
 }
 
-function scoresHtml(r) {
-  return `<table class="scores">
-    <tr><th></th><th>This tower</th><th>Towers won</th><th>Match points</th></tr>
-    ${[0, 1].map((p) => `<tr><td>P${p + 1}${r.winner === p ? ' ★' : ''}</td><td>${r.score[p]}</td><td>${game.wins[p]}</td><td>${game.matchScore[p]}</td></tr>`).join('')}
-  </table>`;
+function scoreTable(r) {
+  return `<table><tr><th></th><th>This tower</th><th>Total</th></tr>
+    ${[0, 1].map((p) => `<tr><td>P${p + 1}</td><td>${r.score[p]}</td><td>${r.total[p]}</td></tr>`).join('')}</table>`;
 }
 
-function showResult() {
+function showTowerEnd() {
   const r = game.result;
-  const who = r.winner >= 0 ? `P${r.winner + 1} wins the tower` : 'Tower drawn';
-  show(`
-    <h1>Tower ${game.towerIndex + 1}: ${who}</h1>
-    ${blameHtml(r)}
-    ${scoresHtml(r)}
-    <p><strong>P${r.chooser + 1}</strong>, ${r.winner >= 0 ? 'you lost this one, so you' : 'you'} pick your starting role for the next tower:</p>
-    <div class="buttons">
-      <button id="pickD">Start as Dropper (D)</button>
-      <button id="pickP" class="alt">Start as Puller (P)</button>
-    </div>`, true);
-  document.getElementById('pickD').onclick = () => game.nextTower('dropper');
-  document.getElementById('pickP').onclick = () => game.nextTower('puller');
+  const what = r.reason === 'collapse'
+    ? `P${r.culprit + 1} knocked the tower down and loses 10 points.`
+    : `The tower survived all ${game.cfg.roundsPerTower} rounds.`;
+  card(`<h1>Tower ${game.towerIndex + 1} is over</h1><p>${what}</p>${scoreTable(r)}
+    <div class="buttons"><button id="next">Next tower</button></div>`);
+  $('next').onclick = () => game.nextTower();
 }
 
-function showMatchOver() {
+function showGameOver() {
   const r = game.result;
-  const who = r.matchWinner >= 0 ? `P${r.matchWinner + 1} wins the match` : 'The match is a draw';
-  show(`
-    <h1>${who}</h1>
-    ${blameHtml(r)}
-    ${scoresHtml(r)}
-    <div class="buttons"><button id="again">Play again (Enter)</button></div>`, true);
-  document.getElementById('again').onclick = startMatch;
+  const what = r.reason === 'collapse' ? `P${r.culprit + 1} knocked the last tower down.` : 'The last tower survived.';
+  const who = r.winner < 0 ? 'It\'s a draw' : `P${r.winner + 1} wins`;
+  card(`<h1>${who}</h1><p>${what}</p>${scoreTable(r)}
+    <div class="buttons"><button id="again">Play again</button></div>`);
+  $('again').onclick = () => game.startGame();
 }
 
-function startMatch() {
-  paused = false;
-  game.startMatch(0);
+// ------------------------------------------------------------------ HUD
+
+function icon(el, cells) {
+  const w = Math.max(...cells.map((c) => c[0])) + 1, d = Math.max(...cells.map((c) => c[1])) + 1;
+  const on = new Set(cells.map((c) => `${c[0]},${c[1]}`));
+  el.style.gridTemplateColumns = `repeat(${w}, auto)`;
+  let html = '';
+  for (let z = 0; z < d; z++) for (let x = 0; x < w; x++) html += `<i class="${on.has(`${x},${z}`) ? 'on' : ''}"></i>`;
+  el.innerHTML = html;
 }
 
-function syncOverlay() {
-  if (game.state === shownState) return;
-  shownState = game.state;
+function drawHud() {
+  const g = game;
+  for (const p of [0, 1]) {
+    const isDropper = p === g.dropper;
+    $(`p${p}pts`).textContent = g.total[p] + g.score[p];
+    const role = $(`p${p}role`);
+    role.textContent = isDropper ? 'Dropper' : 'Puller';
+    role.className = `role ${isDropper ? 'drop' : 'pull'}`;
+    const active = (g.state === 'aim' || g.state === 'dropping' || g.state === 'choose' || g.state === 'pulling') && g.mover === p;
+    $(`p${p}`).className = `player${active ? ' active' : ''}${active && g.role === 'pull' ? ' pulling' : ''}`;
+  }
+  $('towerLabel').textContent = `Tower ${g.towerIndex + 1} of ${g.cfg.towers}`;
+  $('roundLabel').textContent = `Round ${g.round} of ${g.cfg.roundsPerTower}`;
+  const left = g.cfg.swapEvery - ((g.round - 1) % g.cfg.swapEvery);
+  $('swapLabel').textContent = g.round + left > g.cfg.roundsPerTower ? 'No more role swaps'
+    : `Roles swap after ${left === 1 ? 'this round' : `${left} rounds`}`;
+  icon($('nowIcon'), g.piece.cells);
+  icon($('nextIcon'), g.next.cells);
+  $('pieces').classList.toggle('hidden', g.role !== 'drop');
+}
+
+function drawLog() {
+  while (game.messages.length) log.unshift(game.messages.shift());
+  log.length = Math.min(log.length, 5);
+  $('log').innerHTML = log.map((m) => `<div class="${m.player >= 0 ? 'p' + m.player : ''}">${m.text}</div>`).join('');
+}
+
+function button(label, cls, onClick, disabled = false) {
+  const b = document.createElement('button');
+  b.textContent = label;
+  if (cls) b.className = cls;
+  b.disabled = disabled;
+  b.onclick = (e) => { e.stopPropagation(); onClick(); };
+  return b;
+}
+
+function drawPrompt() {
+  const g = game;
+  const line = $('promptLine'), sub = $('promptSub'), btns = $('promptButtons');
+  btns.replaceChildren();
+  const who = `P${g.mover + 1}`;
+  if (g.state === 'aim') {
+    line.innerHTML = `${who}: <span class="drop">drop the piece</span>`;
+    sub.textContent = 'Move the mouse over the tower to aim. Click to drop.';
+    btns.append(button('Turn piece (R)', 'plain', () => game.rotatePiece()), button('Drop (Space)', '', dropNow));
+  } else if (g.state === 'choose') {
+    line.innerHTML = `${who}: <span class="pull">pull a block out</span>`;
+    const sel = view.selectedId != null && g.blocks.get(view.selectedId);
+    if (sel) {
+      const pts = g.cfg.score.pull[view.pullInfo.get(sel.id).tier];
+      sub.textContent = `It will slide the way the arrow points. Worth +${pts}.`;
+      btns.append(button(`Pull it (Space)`, 'pull', pullNow), button('Choose another', 'plain', () => { view.selectedId = null; shown = null; }));
+    } else {
+      sub.innerHTML = 'Click a coloured block.' +
+        '<span class="dot" style="background:#4f8fd6"></span>light +1' +
+        '<span class="dot" style="background:#e6b422"></span>medium +2' +
+        '<span class="dot" style="background:#d9534f"></span>heavy +4' +
+        '<span class="dot" style="background:#7a6a55"></span>can\'t be pulled';
+    }
+  } else if (g.state === 'dropping' || g.state === 'pulling' || g.state === 'settle') {
+    line.textContent = g.state === 'settle' ? 'Waiting for the tower to settle…' : (g.state === 'pulling' ? 'Pulling…' : 'Dropping…');
+    sub.textContent = '';
+  } else {
+    line.textContent = '';
+    sub.textContent = '';
+  }
+}
+
+function sync() {
+  const key = `${game.state}|${view.selectedId}|${game.mover}|${game.round}|${game.towerIndex}`;
+  drawLog();
+  if (game.world) drawHud();
+  if (key === shown) return;
+  shown = key;
+  $('hud').classList.toggle('hidden', !game.world);
+  if (game.state === 'choose' && view.pullInfo.size === 0) view.refreshPullInfo();
+  if (game.state !== 'choose') { view.pullInfo.clear(); view.selectedId = null; view.hoverId = null; $('tip').textContent = ''; }
   if (game.state === 'menu') showMenu();
-  else if (game.state === 'result') showResult();
-  else if (game.state === 'matchover') showMatchOver();
-  else hide();
+  else if (game.state === 'towerEnd') showTowerEnd();
+  else if (game.state === 'gameOver') showGameOver();
+  else if (!helpOpen) closeCard();
+  drawPrompt();
 }
 
-// ------------------------------------------------------------------ keyboard
+// ------------------------------------------------------------------ actions
 
-const held = new Map(); // direction key -> seconds held
-const KEYS = {
-  KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right',
-  KeyW: 'cw', ArrowUp: 'cw', KeyQ: 'ccw', KeyS: 'soft', ArrowDown: 'soft',
-  Space: 'hard', KeyE: 'hold',
-};
+function dropNow() {
+  const target = game.beginDrop();
+  if (target) view.startDrop(target.y, () => game.place());
+}
 
-window.addEventListener('keydown', (e) => {
-  if (e.code === 'Enter' && (game.state === 'menu' || game.state === 'matchover')) { startMatch(); return; }
-  if (game.state === 'result') {
-    if (e.code === 'KeyD') game.nextTower('dropper');
-    if (e.code === 'KeyP') game.nextTower('puller');
+function pullNow() {
+  const blk = view.selectedId != null && game.blocks.get(view.selectedId);
+  if (!blk) return;
+  game.startPull(blk, view.cameraDir());
+}
+
+function hoverTip(blk, x, y) {
+  const tip = $('tip');
+  const info = blk && view.pullInfo.get(blk.id);
+  if (!info) { tip.textContent = ''; return; }
+  tip.style.left = `${x}px`;
+  tip.style.top = `${y}px`;
+  if (info.can) tip.textContent = `${TIER_NAMES[info.tier]} load · +${game.cfg.score.pull[info.tier]}`;
+  else tip.textContent = game.inPullLayers(blk) ? 'Boxed in: no clear way out' : 'Top two layers can\'t be pulled';
+}
+
+// ------------------------------------------------------------------ pointer
+
+let down = null; // { x, y, dragged, button }
+
+canvas.addEventListener('pointerdown', (e) => {
+  canvas.setPointerCapture(e.pointerId);
+  down = { x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY, dragged: false, button: e.button, touch: e.pointerType === 'touch' };
+});
+
+canvas.addEventListener('pointermove', (e) => {
+  if (down) {
+    if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) down.dragged = true;
+    if (down.dragged) view.orbit(e.clientX - down.lx, e.clientY - down.ly);
+    down.lx = e.clientX; down.ly = e.clientY;
     return;
   }
-  if (e.code === 'Escape' && (game.state === 'playing' || game.state === 'freeze')) { paused = !paused; return; }
-  const action = KEYS[e.code];
-  if (!action) return;
-  e.preventDefault();
-  if (e.repeat || paused) return;
-  if (action === 'left') { game.moveActive(-1); held.set('left', 0); held.delete('right'); }
-  else if (action === 'right') { game.moveActive(1); held.set('right', 0); held.delete('left'); }
-  else if (action === 'cw') game.rotateActive(1);
-  else if (action === 'ccw') game.rotateActive(-1);
-  else if (action === 'soft') game.softDrop = true;
-  else if (action === 'hard') game.hardDrop();
-  else if (action === 'hold') game.holdActive();
-});
-
-window.addEventListener('keyup', (e) => {
-  const action = KEYS[e.code];
-  if (action === 'left' || action === 'right') held.delete(action);
-  if (action === 'soft') game.softDrop = false;
-});
-
-function autoRepeat(dt) {
-  // 170 ms before repeating, then one step every 50 ms
-  for (const [dir, t] of held) {
-    const nt = t + dt;
-    const steps = (x) => (x < 0.17 ? 0 : 1 + Math.floor((x - 0.17) / 0.05));
-    for (let i = steps(t); i < steps(nt); i++) game.moveActive(dir === 'left' ? -1 : 1);
-    held.set(dir, nt);
+  if (game.state === 'aim') {
+    const p = view.aimPoint(e.clientX, e.clientY);
+    if (p) game.aimAt(p.x, p.z);
+  } else if (game.state === 'choose') {
+    const blk = view.pickBlock(e.clientX, e.clientY);
+    view.hoverId = blk ? blk.id : null;
+    hoverTip(blk, e.clientX, e.clientY);
   }
-}
-
-// ------------------------------------------------------------------ mouse
-
-function world(e) {
-  const r = canvas.getBoundingClientRect();
-  return view.toWorld(e.clientX - r.left, e.clientY - r.top);
-}
-
-canvas.addEventListener('mousedown', (e) => {
-  if (paused) return;
-  const p = world(e);
-  if (e.button === 0) game.pointerDown(p.x, p.y);
-  else if (e.button === 2) game.tap(p.x, p.y);
 });
-window.addEventListener('mousemove', (e) => {
-  const p = world(e);
-  game.setPointer(p.x, p.y);
-  view.hover = game.world ? game.cellAt(p.x, p.y) : null;
+
+canvas.addEventListener('pointerup', (e) => {
+  const d = down;
+  down = null;
+  if (!d || d.dragged) return;
+  if (d.button === 2) { game.rotatePiece(); return; }
+  if (game.state === 'aim') {
+    const p = view.aimPoint(e.clientX, e.clientY);
+    if (p) game.aimAt(p.x, p.z);
+    // On a touch screen a tap only aims; the Drop button drops.
+    if (!d.touch) dropNow();
+  } else if (game.state === 'choose') {
+    const blk = view.pickBlock(e.clientX, e.clientY);
+    const info = blk && view.pullInfo.get(blk.id);
+    if (blk && info && info.can) {
+      if (view.selectedId === blk.id) pullNow();
+      else view.selectedId = blk.id;
+    } else {
+      view.selectedId = null;
+      if (d.touch) hoverTip(blk, e.clientX, e.clientY);
+    }
+  }
 });
-window.addEventListener('mouseup', (e) => { if (e.button === 0) game.pointerUp(); });
+
+canvas.addEventListener('pointercancel', () => { down = null; });
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-window.addEventListener('blur', () => { held.clear(); game.softDrop = false; game.pointerUp(); });
+canvas.addEventListener('wheel', (e) => { e.preventDefault(); view.zoom(e.deltaY); }, { passive: false });
+
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyR') game.rotatePiece();
+  else if (e.code === 'Space' || e.code === 'Enter') {
+    e.preventDefault();
+    if (game.state === 'menu') game.startGame();
+    else if (game.state === 'towerEnd') game.nextTower();
+    else if (game.state === 'gameOver') game.startGame();
+    else if (game.state === 'aim') dropNow();
+    else if (game.state === 'choose') pullNow();
+  } else if (e.code === 'ArrowLeft') view.orbit(40, 0);
+  else if (e.code === 'ArrowRight') view.orbit(-40, 0);
+  else if (e.code === 'ArrowUp') view.orbit(0, 30);
+  else if (e.code === 'ArrowDown') view.orbit(0, -30);
+  else if (e.code === 'Escape' && helpOpen) closeCard();
+});
+
+$('helpBtn').onclick = () => (helpOpen ? closeCard() : showHelp());
 window.addEventListener('resize', () => view.resize());
 
 // ------------------------------------------------------------------ loop
@@ -201,13 +290,10 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
-  if (!paused) {
-    autoRepeat(dt);
-    game.update(dt);
-  }
-  syncOverlay();
-  view.draw(dt, paused);
+  game.update(dt);
+  sync();
+  view.render(dt);
   requestAnimationFrame(frame);
 }
-syncOverlay();
+sync();
 requestAnimationFrame(frame);

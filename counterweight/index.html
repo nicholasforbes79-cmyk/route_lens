@@ -3,12 +3,36 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Counterweight (prototype)</title>
+  <title>Counterweight</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <canvas id="game"></canvas>
-  <div id="overlay" class="overlay"><div class="card"><h1>Counterweight</h1><p>Loading physics…</p></div></div>
+  <canvas id="view"></canvas>
+
+  <div id="hud" class="hidden">
+    <div class="top">
+      <div class="player" id="p0"><div class="name">P1</div><div class="pts" id="p0pts">0</div><div class="role" id="p0role"></div></div>
+      <div class="status"><div id="towerLabel"></div><div id="roundLabel"></div><div id="swapLabel" class="dim"></div></div>
+      <div class="player" id="p1"><div class="name">P2</div><div class="pts" id="p1pts">0</div><div class="role" id="p1role"></div></div>
+    </div>
+    <div class="pieces" id="pieces">
+      <div class="label">Dropping now</div><div class="icon" id="nowIcon"></div>
+      <div class="label">Next</div><div class="icon small" id="nextIcon"></div>
+    </div>
+    <div class="log" id="log"></div>
+    <div class="tip" id="tip"></div>
+    <div class="prompt">
+      <div class="line" id="promptLine"></div>
+      <div class="sub" id="promptSub"></div>
+      <div class="buttons" id="promptButtons"></div>
+    </div>
+    <div class="corner">
+      <button id="helpBtn" class="plain" title="Rules">?</button>
+    </div>
+    <div class="camhint dim">Drag to look around · scroll to zoom</div>
+  </div>
+
+  <div id="overlay" class="overlay"><div class="card"><h1>Counterweight</h1><p>Loading…</p></div></div>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>

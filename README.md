@@ -102,4 +102,4 @@ simulated journey through the live screen without moving.
 ## Also in this repository
 
 [`counterweight/`](counterweight/) holds a prototype of an unrelated game, a
-Jenga × Tetris hybrid. It shares no code with Route Lens. See its README.
+turn-based 3D tower game that crosses Jenga with a piece-dropping puzzle. It shares no code with Route Lens. See its README.

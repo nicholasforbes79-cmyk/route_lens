@@ -1,10 +1,41 @@
 # COUNTERWEIGHT — Game Design Specification
 
-**Version:** 0.3 (open questions from 0.1 and 0.2 resolved, see §17)
+**Version:** 0.4 (turn-based 3D is now the default mode, see "Current direction" below)
 **Genre:** Physics block puzzle / competitive party game
 **Platforms:** PC (Windows, macOS, Linux) first; browser build for prototyping
 **Players:** 1–2 local, 2 online; single-player vs AI
 **Session length:** 8–12 minutes per match
+
+---
+
+## Current direction (v0.4)
+
+Playtesting the first real-time 2D prototype showed it was too complicated. The default mode is now **turn-based and 3D**. The real-time design in §§2–16 is kept as a possible second mode, and the prototype of it lives in `counterweight/realtime2d/`.
+
+### What changed
+- **Turn-based.** One round is one drop, then one pull. There is no clock. Roles swap every 3 rounds. Two players share one mouse.
+- **3D tower.** A 3 × 3 footprint, built in layers, viewable from any angle (drag to orbit, scroll to zoom).
+- **The hand.** A hand comes down from the sky holding the Dropper's piece, follows the aim, lowers the piece onto the tower, lets go and leaves.
+- **Shapes.** Flat pieces one cell tall, not tetrominoes: plank (1 × 3), half (1 × 2), corner (3 cells), slab (2 × 2), cube.
+- **Pulling.** The Puller clicks a block to choose it and clicks again to pull. The block slides straight out, so it must have a clear path, and it can't come from the top two layers. Friction is real: a block carrying a lot of weight drags what sits on it.
+- **Blame is simple.** Whoever made the move that brought the tower down takes the penalty. The ledger, hot-potato window and blame split in §5 apply to the real-time mode only.
+
+### Rules of the default mode
+| Rule | Value |
+|---|---|
+| Rounds per tower | 12 |
+| Role swap | every 3 rounds |
+| Towers per game | 3, highest total wins |
+| Dropper score | 1 per cell placed, +3 for completing a layer |
+| Puller score | 1 / 2 / 4 for a light / medium / heavy block |
+| Knocked-off blocks | −2 each to the mover |
+| Collapse | 3 or more blocks hit the table: −10 to the mover, tower ends |
+| Who drops first | players alternate from tower to tower |
+
+Load tier compares what a block carries with its fair share of everything above it: under 0.7 is light, under 1.4 is medium, otherwise heavy.
+
+### Carried over from earlier decisions, not yet built
+Deep pulls, slab cracking and the async online rules (§4.4, §6.5, §9.5) were written for the real-time design. Online play for the turn-based mode is now simpler, since it is already alternating turns. Whether deep pulls and fused layers belong in the turn-based mode is open.
 
 ---
 
