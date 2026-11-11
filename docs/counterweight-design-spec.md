@@ -1,6 +1,6 @@
 # COUNTERWEIGHT — Game Design Specification
 
-**Version:** 0.2 (open questions from 0.1 resolved, see §17)
+**Version:** 0.3 (open questions from 0.1 and 0.2 resolved, see §17)
 **Genre:** Physics block puzzle / competitive party game
 **Platforms:** PC (Windows, macOS, Linux) first; browser build for prototyping
 **Players:** 1–2 local, 2 online; single-player vs AI
@@ -95,14 +95,14 @@ In local and live online play, both players act in real time. The physics sim ru
 ### 4.4 Deep pull (neutral-band escape valve)
 The Puller may extract a block from the neutral band as a high-risk option, for example when the pull zone has been fused solid or everything in it is red.
 
-- **Cost:** −40 points, paid when the grab starts (not refunded if the pull is aborted).
+- **Cost:** −40 points for a player's first deep pull in a tower, rising by 20 each time (−40, −60, −80, …). Paid when the grab starts and not refunded if the pull is aborted. The count is per player and resets with each new tower.
 - **Reward:** the normal extraction score with its stress multiplier (§7.1), so only a yellow or red block pays back the cost.
 - **Blame weight:** a deep pull counts ×1.5 in the blame ledger (§5.2).
 - **Cooldown:** 10 s between deep pulls.
 - **Control:** hold the modifier (Shift / LT) while grabbing; the neutral band lights up while it is held.
 - The top 3 rows stay untouchable.
 
-All four numbers are starting values for playtesting.
+All of these numbers are starting values for playtesting.
 
 ---
 
@@ -167,7 +167,8 @@ Fused slabs are not permanent. This stops heavily fused towers from stalling int
 2. If the load stays above the threshold for **3 s**, visible cracks appear and a cracking sound plays. This is the warning stage; the slab still behaves as one body.
 3. If the load stays above the threshold for a further **5 s**, or ever exceeds 150% of it, the slab **shatters** into its 10 individual unit cubes. They are ordinary blocks again: pullable, and able to shift.
 4. If the load drops back below the threshold during the warning stage, the cracks stay visible but the timer resets. A cracked slab that is loaded again shatters after 3 s instead of 5.
-5. The +50 fusion bonus is kept. A shatter is logged in the blame ledger against the actions that raised the slab's load.
+5. A shattered slab **never re-fuses**. Its cubes are marked and can't count towards a row completion again, even if the row is still complete and the load drops.
+6. The +50 fusion bonus is kept. A shatter is logged in the blame ledger against the actions that raised the slab's load.
 
 Effect on play: every row fused low in the tower becomes a slow fuse as the tower grows, and Lead pieces become a way to break an opponent's slab on purpose.
 
@@ -183,7 +184,7 @@ Effect on play: every row fused low in the tower becomes a slow fuse as the towe
 | Dropper: **row completion** (a full 10-wide row at rest) | +50, and the row **fuses** into a slab (unpullable and very stable, until it cracks: §6.5) |
 | Puller: block extracted | 10 × stress multiplier (Blue ×1, Green ×2, Yellow ×4, Red ×8) |
 | Puller: clean pull (no neighbour moved > 0.2 units) | +5 |
-| Puller: **deep pull** from the neutral band (§4.4) | −40 up front, then the normal extraction score |
+| Puller: **deep pull** from the neutral band (§4.4) | −40 up front (rising by 20 per use in that tower), then the normal extraction score |
 | Either: **Height milestone** (every 5 rows) | +25 to both players (shared incentive) |
 
 ### 7.2 Collapse penalty
@@ -239,9 +240,10 @@ One Dropper vs a team of Pullers, or two Droppers competing over who builds the 
 ### 9.5 Online async (alternating turns)
 A correspondence-style online mode for players who are not online at the same time. Local and live online Versus stay real-time.
 
-- **Turn structure:** the Dropper places one piece, the tower settles (the sim runs until every body sleeps, up to 5 s), then the Puller makes one pull or passes, and the tower settles again. That is one **round**.
+- **Turn structure:** the Dropper places one piece, the tower settles (the sim runs until every body sleeps, up to 5 s), then the Puller makes one pull or passes (passing is limited, see below), and the tower settles again. That is one **round**.
 - **Swap:** roles swap every **6 rounds** instead of every 60 s.
 - **Blame:** age decay is measured in rounds, not seconds (half-life of 2 rounds). The hot-potato window becomes "the first action after a swap", extended to the first 2 actions above 25 rows.
+- **Passing:** the Puller may pass at most **2 times per role phase** (6 rounds) and never twice in a row. A pass is free and doesn't count against the limit when nothing in the pull zone can be pulled (for example, it is all fused) and the Puller declines a deep pull. This keeps a leading Puller from sitting out the phase while leaving room to dodge an obvious trap.
 - **Last-word bonus:** applies to the Dropper's final placement before a swap.
 - **Time-based pieces** convert to rounds: Spring fires after 1 round, Ghost gains its weight after 2 rounds, Glue bonds at the end of the round it lands in. Slab cracking (§6.5) uses 1 round of warning, then shatters on the next round if still overloaded.
 - **Turn timer:** 24 hours per action by default; a missed turn is a forfeit of the tower. A "live" setting of 30 s per action is available for the same ruleset.
@@ -328,7 +330,8 @@ Target: a new player can play a full match within **5 minutes** of first launch.
 | Blame age decay | half-life of 6 s | Longer half-life = traps pay off more |
 | Red multiplier | ×8 | Encourages risky pulls |
 | Fusion bonus | +50 | Stronger stabilising incentive for the Dropper |
-| Deep-pull cost | −40 | Neutral band is used less; fused towers are harder to escape |
+| Deep-pull cost | −40, +20 per use | Neutral band is used less; fused towers are harder to escape |
+| Async pass limit | 2 per role phase | More room to dodge traps; a leading Puller can stall longer |
 | Slab crack threshold | 6× slab weight | Slabs last longer; more time-cap finishes |
 | Hot-potato window | 2 s + 0.5 s per 5 rows (cap 5 s) | More protection after a swap; traps pay off less |
 | Async swap interval | 6 rounds | Longer = more strategic |
@@ -367,7 +370,7 @@ Every lever is exposed in a **custom rules** menu for local play and for playtes
 
 ---
 
-## 17. Design Decisions (resolved from v0.1)
+## 17. Design Decisions (resolved from v0.1 and v0.2)
 
 | Question | Decision | Where |
 |---|---|---|
@@ -375,9 +378,6 @@ Every lever is exposed in a **custom rules** menu for local play and for playtes
 | Real-time or alternating turns for an online async mode? | **Alternating turns** for async online. Local and live online stay real-time | §9.5 |
 | Should fused slabs eventually crack under load? | **Yes.** Sustained overload cracks a slab, then shatters it back into single cubes | §6.5 |
 | Should the hot-potato window scale with tower height? | **Yes.** 2 s up to 10 rows, +0.5 s per further 5 rows, capped at 5 s | §8 |
-
-## 18. Open Questions
-
-1. Should the deep-pull cost rise with each use in a tower, to stop a leading Puller from spamming it?
-2. Should a shattered slab be able to re-fuse if its row is still complete and the load drops?
-3. In async mode, can the Puller pass without limit, or is there a cap per role phase?
+| Should the deep-pull cost rise with each use in a tower? | **Yes.** −40, then +20 per further use, per player, reset each tower | §4.4 |
+| Can a shattered slab re-fuse? | **No.** Its cubes can never count towards a row completion again | §6.5 |
+| Is there a limit on async passes? | **Yes** (designer's call). 2 per role phase, never twice in a row; free when nothing is pullable | §9.5 |
